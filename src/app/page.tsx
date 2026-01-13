@@ -6,13 +6,16 @@ import {
   Zap, 
   FileUp, 
   PenTool, 
-  Download,
-  Layout,
-  Lock,
+    Download,
+    Lock,
   Globe,
   Clock,
   ArrowRight,
-  Plus
+  Plus,
+  Smartphone,
+  Users,
+  FolderHeart,
+  Bell
 } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -46,7 +49,7 @@ export default function Home() {
                 </Button>
                 <Button size="lg" variant="outline" className="h-14 px-10 rounded-2xl text-lg font-semibold border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 transition-all" asChild>
                   <Link href="/contact">
-                    View Demo
+                    Contact Us
                   </Link>
                 </Button>
               </div>
@@ -58,42 +61,150 @@ export default function Home() {
           <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] rounded-full bg-emerald-500/5 blur-[100px] dark:bg-emerald-500/2" />
         </section>
 
-        {/* Workflow Section */}
-        <section className="py-24 border-y border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950/50">
+        {/* Security Section (New) */}
+        <section className="py-24 bg-white dark:bg-slate-950 overflow-hidden">
           <div className="container mx-auto px-6 lg:px-8">
             <div className="mx-auto max-w-7xl">
-              <div className="text-center mb-16">
-                <h2 className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4">Process</h2>
-                <h3 className="text-3xl font-bold tracking-tight sm:text-5xl">Three steps to completion</h3>
+              <div className="flex flex-col lg:flex-row items-center gap-16">
+                <div className="flex-1 space-y-8">
+                  <div>
+                    <h2 className="text-3xl font-bold tracking-tight sm:text-5xl text-slate-900 dark:text-white mb-6">
+                      Total Confidence in Document Security
+                    </h2>
+                    <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl">
+                      Safe-guard sensitive information, ensure regulatory compliance, and maintain full administrative oversight.
+                    </p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="flex gap-4">
+                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
+                        <Lock className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-slate-900 dark:text-white font-semibold">
+                          Protect sensitive data <span className="text-slate-500 dark:text-slate-400 font-normal">with password encryption and advanced redaction.</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
+                        <ShieldCheck className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-slate-900 dark:text-white font-semibold">
+                          Utilize enterprise-level controls <span className="text-slate-500 dark:text-slate-400 font-normal">for user provisioning and management.</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400">
+                        <CheckCircle2 className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-slate-900 dark:text-white font-semibold">
+                          Support compliance <span className="text-slate-500 dark:text-slate-400 font-normal">with industry standards and regulatory requirements.</span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex-1 relative">
+                  <div className="relative mx-auto w-full max-w-[500px] aspect-[4/3] bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-8 overflow-hidden">
+                    {/* Document Lines Mockup */}
+                    <div className="space-y-4">
+                      <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-800 rounded-full" />
+                      <div className="h-4 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full" />
+                      <div className="h-4 w-5/6 bg-slate-100 dark:bg-slate-800/50 rounded-full" />
+                      <div className="h-4 w-4/6 bg-slate-100 dark:bg-slate-800/50 rounded-full" />
+                      <div className="pt-8 space-y-4">
+                         <div className="flex gap-4">
+                            <div className="h-4 w-24 bg-indigo-500/20 rounded-full" />
+                            <div className="h-4 w-32 bg-indigo-500/20 rounded-full" />
+                         </div>
+                         <div className="h-4 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full" />
+                      </div>
+                    </div>
+
+                    {/* Signature Box Overlay */}
+                    <div className="absolute bottom-12 right-12 w-64 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border-2 border-dashed border-indigo-400/50 animate-in fade-in zoom-in duration-700 delay-300">
+                      <div className="relative">
+                        <svg viewBox="0 0 100 40" className="w-full h-16 text-slate-900 dark:text-white">
+                          <path 
+                            d="M10,30 Q30,5 50,25 T90,15" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            strokeWidth="2" 
+                            strokeLinecap="round"
+                            className="animate-draw"
+                          />
+                        </svg>
+                        <div className="absolute -top-4 -right-4 h-8 w-8 bg-indigo-600 rounded-full flex items-center justify-center text-white shadow-lg animate-bounce">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Decorative Blobs */}
+                    <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Workflow Section */}
+        <section className="py-24 border-y border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950/50 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,rgba(79,70,229,0.03),transparent)] pointer-events-none" />
+          <div className="container mx-auto px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              <div className="text-center mb-20">
+                <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 mb-4">The Workflow</h2>
+                <h3 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-slate-900 dark:text-white">Three steps to completion</h3>
               </div>
               
               <div className="grid grid-cols-1 gap-12 md:grid-cols-3 relative">
                 {/* Connecting Lines for Desktop */}
-                <div className="hidden md:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-indigo-100 dark:via-indigo-900/30 to-transparent -translate-y-1/2 -z-10" />
+                <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent -translate-y-1/2 -z-10" />
                 
                 {[
                   {
                     icon: <FileUp className="h-10 w-10 text-indigo-600" />,
                     title: "Upload Document",
-                    description: "Drop your PDF or image files. Our system processes them instantly for editing."
+                    description: "Drop your PDF or image files. Our system processes them instantly for editing.",
+                    number: "01"
                   },
                   {
                     icon: <PenTool className="h-10 w-10 text-indigo-600" />,
                     title: "Apply Signature",
-                    description: "Draw your signature once, and place it anywhere with pixel-perfect precision."
+                    description: "Draw your signature once, and place it anywhere with pixel-perfect precision.",
+                    number: "02"
                   },
                   {
                     icon: <Download className="h-10 w-10 text-indigo-600" />,
-                    title: "Finalize & Save",
-                    description: "Export your document securely. We bake the signature directly into the file."
+                    title: "Download & Save",
+                    description: "Export your document securely. We bake the signature directly into the file.",
+                    number: "03"
                   }
                 ].map((step, i) => (
-                  <div key={i} className="flex flex-col items-center text-center group">
-                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 transition-all group-hover:scale-110 group-hover:rotate-3 shadow-xl shadow-indigo-500/5">
+                  <div key={i} className="flex flex-col items-center text-center group relative">
+                    <div className="absolute -top-10 text-9xl font-black text-slate-100 dark:text-slate-900/40 -z-10 select-none transition-transform group-hover:-translate-y-2 duration-500">
+                      {step.number}
+                    </div>
+                    <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 transition-all group-hover:scale-110 group-hover:shadow-2xl group-hover:shadow-indigo-500/10 group-hover:border-indigo-500/50 shadow-lg relative z-10">
                       {step.icon}
                     </div>
-                    <h4 className="mb-3 text-2xl font-bold tracking-tight">{step.title}</h4>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[280px]">{step.description}</p>
+                    <h4 className="mb-4 text-2xl font-bold tracking-tight text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {step.title}
+                    </h4>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[280px]">
+                      {step.description}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -144,6 +255,53 @@ export default function Home() {
                   {/* Floating elements */}
                   <div className="absolute -top-6 -right-6 h-24 w-24 bg-emerald-500/20 rounded-full blur-2xl animate-pulse" />
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Grid Section (New) */}
+        <section className="py-24 bg-slate-50 dark:bg-slate-950/50">
+          <div className="container mx-auto px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              <div className="text-center mb-16">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4">Enterprise Grade</h2>
+                <h3 className="text-3xl font-bold tracking-tight sm:text-5xl">Modern Tools for Modern Teams</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {[
+                  {
+                    icon: <Smartphone className="h-6 w-6" />,
+                    title: "Mobile Signing",
+                    desc: "Sign documents on the go with our fully responsive mobile experience."
+                  },
+                  {
+                    icon: <Users className="h-6 w-6" />,
+                    title: "Team Collaboration",
+                    desc: "Manage multiple users, departments, and shared document templates."
+                  },
+                  {
+                    icon: <FolderHeart className="h-6 w-6" />,
+                    title: "Smart Folders",
+                    desc: "Automatically organize your signed documents with intelligent tagging."
+                  },
+                  {
+                    icon: <Bell className="h-6 w-6" />,
+                    title: "Instant Alerts",
+                    desc: "Get real-time notifications when a document is viewed or signed."
+                  }
+                ].map((feature, i) => (
+                  <div key={i} className="group p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 transition-all hover:-translate-y-1 hover:shadow-2xl shadow-indigo-500/5">
+                    <div className="mb-6 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                      {feature.icon}
+                    </div>
+                    <h4 className="mb-3 text-xl font-bold tracking-tight">{feature.title}</h4>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
+                      {feature.desc}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

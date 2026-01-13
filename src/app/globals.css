@@ -120,3 +120,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes draw {
+  from {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-draw {
+  animation: draw 2s ease-out forwards;
+}

@@ -8,6 +8,8 @@ import { FileUploader } from "./FileUploader"
 import { EditorToolbar } from "./EditorToolbar"
 import { DocumentCanvas } from "./DocumentCanvas"
 import { SignatureModal } from "./SignatureModal"
+import { TextModal } from "./TextModal"
+import { DateModal } from "./DateModal"
 import { ElementType, PlacedElement, TOOL_CONFIGS } from "./types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -25,11 +27,19 @@ import {
   ChevronLeft,
   Undo2,
   Redo2,
-  Plus
+  Plus,
+  Menu
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const LOGICAL_PAGE_WIDTH = 800
+import { SidebarTools } from "./SidebarTools"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 
 export function EsignTool() {
   const [file, setFile] = useState<File | null>(null)
@@ -43,11 +53,14 @@ export function EsignTool() {
   const [historyIndex, setHistoryIndex] = useState(0)
   
   const [showSignatureModal, setShowSignatureModal] = useState(false)
+  const [showTextModal, setShowTextModal] = useState(false)
+  const [showDateModal, setShowDateModal] = useState(false)
   const [signatureMode, setSignatureMode] = useState<"signature" | "initials">("signature")
   const [pendingContent, setPendingContent] = useState<string | null>(null)
   
   const [savedSignature, setSavedSignature] = useState<string | null>(null)
   const [savedInitials, setSavedInitials] = useState<string | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
   
   const imageInputRef = useRef<HTMLInputElement>(null)
 
@@ -96,7 +109,13 @@ export function EsignTool() {
   }
 
   const handleToolSelect = (tool: ElementType | null) => {
-    setActiveTool(tool)
+    if (activeTool === tool) {
+      setActiveTool(null)
+      setPendingContent(null)
+      return
+    }
+
+    setActiveTool(null) // Reset active tool for auto-placement
     setSelectedElementId(null)
     
     if (tool === "signature") {
@@ -107,6 +126,21 @@ export function EsignTool() {
       setShowSignatureModal(true)
     } else if (tool === "image") {
       imageInputRef.current?.click()
+    } else if (tool === "text") {
+      setShowTextModal(true)
+    } else if (tool === "date") {
+      setShowDateModal(true)
+    } else if (tool === "checkbox") {
+      const config = TOOL_CONFIGS["checkbox"]
+      handleAddElement({
+        type: "checkbox",
+        content: "",
+        x: 100,
+        y: 200,
+        width: config.defaultWidth,
+        height: config.defaultHeight,
+        pageNumber,
+      })
     }
   }
 
@@ -116,9 +150,53 @@ export function EsignTool() {
     } else {
       setSavedInitials(dataUrl)
     }
-    setPendingContent(dataUrl)
     setShowSignatureModal(false)
-    toast.success(`${signatureMode === "signature" ? "Signature" : "Initials"} saved!`)
+    
+    const type = signatureMode === "signature" ? "signature" : "initials"
+    const config = TOOL_CONFIGS[type]
+    handleAddElement({
+      type,
+      content: dataUrl,
+      x: 100,
+      y: signatureMode === "signature" ? 100 : 150,
+      width: config.defaultWidth,
+      height: config.defaultHeight,
+      pageNumber,
+    })
+    
+    toast.success(`${signatureMode === "signature" ? "Signature" : "Initials"} saved and added!`)
+  }
+
+  const handleTextSave = (text: string) => {
+    const config = TOOL_CONFIGS["text"]
+    handleAddElement({
+      type: "text",
+      content: text,
+      x: 100,
+      y: 250,
+      width: config.defaultWidth,
+      height: config.defaultHeight,
+      pageNumber,
+      fontSize: 16,
+    })
+    setShowTextModal(false)
+    toast.success("Text added to document!")
+  }
+
+  const handleDateSave = (date: string) => {
+    const config = TOOL_CONFIGS["date"]
+    handleAddElement({
+      type: "date",
+      content: date,
+      x: 100,
+      y: 300,
+      width: config.defaultWidth,
+      height: config.defaultHeight,
+      pageNumber,
+      fontSize: 16,
+    })
+    setShowDateModal(false)
+    toast.success("Date added to document!")
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,8 +204,17 @@ export function EsignTool() {
     if (imgFile) {
       const reader = new FileReader()
       reader.onload = () => {
-        setPendingContent(reader.result as string)
-        toast.success("Image ready to place!")
+        const config = TOOL_CONFIGS["image"]
+        handleAddElement({
+          type: "image",
+          content: reader.result as string,
+          x: 100,
+          y: 350,
+          width: config.defaultWidth,
+          height: config.defaultHeight,
+          pageNumber,
+        })
+        toast.success("Image added to document!")
       }
       reader.readAsDataURL(imgFile)
     }
@@ -179,58 +266,57 @@ export function EsignTool() {
         const pdfDoc = await PDFDocument.load(fileBuffer)
         const pages = pdfDoc.getPages()
 
-        for (const el of elements) {
-          const page = pages[el.pageNumber - 1]
-          if (!page) continue
+          for (const el of elements) {
+            const page = pages[el.pageNumber - 1]
+            if (!page) continue
 
-          const { width: pdfWidth, height: pdfHeight } = page.getSize()
-          const scale = pdfWidth / LOGICAL_PAGE_WIDTH
+            const { width: pdfWidth, height: pdfHeight } = page.getSize()
 
-          const x = el.x * scale
-          const y = pdfHeight - (el.y * scale) - (el.height * scale)
-          const w = el.width * scale
-          const h = el.height * scale
+            const x = el.x
+            const y = pdfHeight - el.y - el.height
+            const w = el.width
+            const h = el.height
 
-          if (el.type === "signature" || el.type === "initials" || el.type === "image") {
-            const imgBytes = await fetch(el.content).then((r) => r.arrayBuffer())
-            const img = el.content.includes("image/png")
-              ? await pdfDoc.embedPng(imgBytes)
-              : await pdfDoc.embedJpg(imgBytes)
-            page.drawImage(img, { x, y, width: w, height: h })
-          } else if (el.type === "text" || el.type === "date") {
-            const font = await pdfDoc.embedFont("Helvetica" as const)
-            page.drawText(el.content, {
-              x,
-              y: y + h / 2 - (6 * scale),
-              size: (el.fontSize || 14) * scale,
-              font,
-              color: rgb(0, 0, 0),
-            })
-          } else if (el.type === "checkbox") {
-            page.drawRectangle({
-              x,
-              y,
-              width: w,
-              height: h,
-              borderColor: rgb(0, 0, 0),
-              borderWidth: 1.5,
-            })
-            if (el.checked) {
-              page.drawLine({
-                start: { x: x + (2 * scale), y: y + h / 2 },
-                end: { x: x + w / 3, y: y + (2 * scale) },
-                thickness: 2 * scale,
-                color: rgb(0.2, 0.4, 0.8),
+            if (el.type === "signature" || el.type === "initials" || el.type === "image") {
+              const imgBytes = await fetch(el.content).then((r) => r.arrayBuffer())
+              const img = el.content.includes("image/png")
+                ? await pdfDoc.embedPng(imgBytes)
+                : await pdfDoc.embedJpg(imgBytes)
+              page.drawImage(img, { x, y, width: w, height: h })
+            } else if (el.type === "text" || el.type === "date") {
+              const font = await pdfDoc.embedFont("Helvetica" as const)
+              page.drawText(el.content, {
+                x,
+                y: y + h / 2 - 6,
+                size: el.fontSize || 14,
+                font,
+                color: rgb(0, 0, 0),
               })
-              page.drawLine({
-                start: { x: x + w / 3, y: y + (2 * scale) },
-                end: { x: x + w - (2 * scale), y: y + h - (2 * scale) },
-                thickness: 2 * scale,
-                color: rgb(0.2, 0.4, 0.8),
+            } else if (el.type === "checkbox") {
+              page.drawRectangle({
+                x,
+                y,
+                width: w,
+                height: h,
+                borderColor: rgb(0, 0, 0),
+                borderWidth: 1.5,
               })
+              if (el.checked) {
+                page.drawLine({
+                  start: { x: x + 2, y: y + h / 2 },
+                  end: { x: x + w / 3, y: y + 2 },
+                  thickness: 2,
+                  color: rgb(0.2, 0.4, 0.8),
+                })
+                page.drawLine({
+                  start: { x: x + w / 3, y: y + 2 },
+                  end: { x: x + w - 2, y: y + h - 2 },
+                  thickness: 2,
+                  color: rgb(0.2, 0.4, 0.8),
+                })
+              }
             }
           }
-        }
 
         const pdfBytes = await pdfDoc.save()
         saveAs(new Blob([pdfBytes.buffer as ArrayBuffer]), `signed_${file.name}`)
@@ -247,13 +333,11 @@ export function EsignTool() {
         canvas.height = img.height
         ctx.drawImage(img, 0, 0)
 
-        const scale = img.width / LOGICAL_PAGE_WIDTH
-
         for (const el of elements) {
-          const x = el.x * scale
-          const y = el.y * scale
-          const w = el.width * scale
-          const h = el.height * scale
+          const x = el.x
+          const y = el.y
+          const w = el.width
+          const h = el.height
 
           if (el.type === "signature" || el.type === "initials" || el.type === "image") {
             const sigImg = new Image()
@@ -261,20 +345,20 @@ export function EsignTool() {
             await new Promise((resolve) => (sigImg.onload = resolve))
             ctx.drawImage(sigImg, x, y, w, h)
           } else if (el.type === "text" || el.type === "date") {
-            ctx.font = `${(el.fontSize || 14) * scale}px Arial`
+            ctx.font = `${el.fontSize || 14}px Arial`
             ctx.fillStyle = "#000"
-            ctx.fillText(el.content, x, y + h / 2 + (5 * scale))
+            ctx.fillText(el.content, x, y + h / 2 + 5)
           } else if (el.type === "checkbox") {
             ctx.strokeStyle = "#000"
-            ctx.lineWidth = 2 * scale
+            ctx.lineWidth = 2
             ctx.strokeRect(x, y, w, h)
             if (el.checked) {
               ctx.strokeStyle = "#3366cc"
-              ctx.lineWidth = 3 * scale
+              ctx.lineWidth = 3
               ctx.beginPath()
-              ctx.moveTo(x + (2 * scale), y + h / 2)
-              ctx.lineTo(x + w / 3, y + h - (2 * scale))
-              ctx.lineTo(x + w - (2 * scale), y + (2 * scale))
+              ctx.moveTo(x + 2, y + h / 2)
+              ctx.lineTo(x + w / 3, y + h - 2)
+              ctx.lineTo(x + w - 2, y + 2)
               ctx.stroke()
             }
           }
@@ -321,176 +405,35 @@ export function EsignTool() {
           />
         </div>
       ) : (
-        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {/* Main Workspace */}
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-            
-            {/* Left Tools Panel - Floating Style */}
-            <div className="xl:col-span-3 space-y-4">
-              <Card className="border-none shadow-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] overflow-hidden">
-                <CardContent className="p-6 space-y-6">
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Saved Assets</h3>
-                    <div className="grid grid-cols-1 gap-3">
-                      {savedSignature ? (
-                        <div className="group relative p-3 border-2 border-indigo-100 dark:border-indigo-900/50 rounded-2xl bg-white dark:bg-slate-950 transition-all hover:border-indigo-500">
-                          <img src={savedSignature} alt="Signature" className="h-12 w-full object-contain" />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                            onClick={() => {
-                              setSavedSignature(null)
-                              setPendingContent(null)
-                            }}
-                          >
-                            <Trash2 size={12} />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          className="h-16 rounded-2xl border-dashed border-2 hover:border-indigo-500 hover:bg-indigo-50 transition-all flex flex-col items-center justify-center gap-1 group"
-                          onClick={() => {
-                            setSignatureMode("signature")
-                            setShowSignatureModal(true)
-                          }}
-                        >
-                          <PenTool size={18} className="text-slate-400 group-hover:text-indigo-600" />
-                          <span className="text-[10px] font-bold uppercase">Add Signature</span>
-                        </Button>
-                      )}
+          <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Main Workspace */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+              
+              {/* Desktop Left Tools Panel */}
+              <div className="hidden xl:block xl:col-span-3">
+                <SidebarTools
+                  savedSignature={savedSignature}
+                  setSavedSignature={setSavedSignature}
+                  savedInitials={savedInitials}
+                  setSavedInitials={setSavedInitials}
+                  setSignatureMode={setSignatureMode}
+                  setShowSignatureModal={setShowSignatureModal}
+                  setPendingContent={setPendingContent}
+                  handleToolSelect={handleToolSelect}
+                  downloadSignedDocument={downloadSignedDocument}
+                  isProcessing={isProcessing}
+                  elements={elements}
+                  handleClearFile={handleClearFile}
+                  selectedElementId={selectedElementId}
+                  setSelectedElementId={setSelectedElementId}
+                  handleRemoveElement={handleRemoveElement}
+                />
+              </div>
 
-                      {savedInitials ? (
-                        <div className="group relative p-3 border-2 border-indigo-100 dark:border-indigo-900/50 rounded-2xl bg-white dark:bg-slate-950 transition-all hover:border-indigo-500">
-                          <img src={savedInitials} alt="Initials" className="h-10 w-full object-contain" />
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                            onClick={() => {
-                              setSavedInitials(null)
-                              setPendingContent(null)
-                            }}
-                          >
-                            <Trash2 size={12} />
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          className="h-16 rounded-2xl border-dashed border-2 hover:border-indigo-500 hover:bg-indigo-50 transition-all flex flex-col items-center justify-center gap-1 group"
-                          onClick={() => {
-                            setSignatureMode("initials")
-                            setShowSignatureModal(true)
-                          }}
-                        >
-                          <User size={18} className="text-slate-400 group-hover:text-indigo-600" />
-                          <span className="text-[10px] font-bold uppercase">Add Initials</span>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Quick Tools</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        className="h-14 rounded-xl flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                        onClick={() => handleToolSelect("text")}
-                      >
-                        <Plus size={16} /> Text
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="h-14 rounded-xl flex flex-col items-center justify-center gap-1 text-[10px] font-bold uppercase hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                        onClick={() => handleToolSelect("date")}
-                      >
-                        <Plus size={16} /> Date
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <Button
-                      onClick={downloadSignedDocument}
-                      className="w-full h-14 rounded-2xl text-lg font-bold shadow-2xl shadow-indigo-500/40 bg-indigo-600 hover:bg-indigo-700 transition-all active:scale-95"
-                      disabled={elements.length === 0 || isProcessing}
-                    >
-                      {isProcessing ? (
-                        <div className="flex items-center gap-2">
-                          <div className="h-5 w-5 animate-spin rounded-full border-3 border-current border-t-transparent" />
-                          Saving...
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <Download size={20} />
-                          Finalize PDF
-                        </div>
-                      )}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full mt-4 text-slate-500 hover:text-red-500 hover:bg-red-50 rounded-xl"
-                      onClick={handleClearFile}
-                    >
-                      <FileUp size={16} className="mr-2" />
-                      Discard & Exit
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Element List Card */}
-              {elements.length > 0 && (
-                <Card className="border-none shadow-xl bg-white/50 dark:bg-slate-900/50 backdrop-blur-md rounded-[2rem] overflow-hidden">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Layer Stack</h3>
-                      <span className="text-[10px] bg-indigo-500 text-white px-2 py-0.5 rounded-full font-bold">
-                        {elements.length}
-                      </span>
-                    </div>
-                    <div className="max-h-[250px] overflow-auto space-y-2 custom-scrollbar">
-                      {elements.map((el, i) => (
-                        <div
-                          key={el.id}
-                          className={cn(
-                            "flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all border cursor-pointer",
-                            selectedElementId === el.id
-                              ? "bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-500/20"
-                              : "bg-white dark:bg-slate-950 border-slate-100 dark:border-slate-800 hover:border-indigo-300"
-                          )}
-                          onClick={() => setSelectedElementId(el.id)}
-                        >
-                          <span className="capitalize truncate">
-                            {el.type} {i + 1}
-                          </span>
-                          <button
-                            className={cn(
-                              "p-1 rounded-lg transition-colors",
-                              selectedElementId === el.id ? "hover:bg-white/20 text-white" : "hover:bg-red-50 text-slate-400 hover:text-red-500"
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleRemoveElement(el.id)
-                            }}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Document Viewer Column */}
-            <div className="xl:col-span-9 space-y-6">
+              {/* Document Viewer Column */}
+              <div className="xl:col-span-9 space-y-6">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[2rem] shadow-xl">
-                <div className="flex items-center gap-2">
+                <div className="hidden xl:flex items-center gap-2">
                   <EditorToolbar 
                     activeTool={activeTool} 
                     onToolSelect={handleToolSelect} 
@@ -501,12 +444,81 @@ export function EsignTool() {
                   />
                 </div>
                 
-                <div className="flex items-center gap-3">
-                   <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold text-slate-500 flex items-center gap-2">
-                     <CheckCircle2 size={14} className="text-emerald-500" />
-                     Encrypted Secure Session
-                   </div>
-                </div>
+                  <div className="flex items-center justify-between w-full xl:w-auto gap-3">
+                     <div className="xl:hidden flex items-center gap-2">
+                       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                         <SheetTrigger asChild>
+                           <Button variant="outline" className="h-12 rounded-2xl border-indigo-200 bg-indigo-50/50 text-indigo-700 font-bold gap-2">
+                             <Menu size={18} />
+                             Tools
+                           </Button>
+                         </SheetTrigger>
+                         <SheetContent side="left" className="w-[300px] sm:w-[400px] overflow-auto pt-10">
+                           <SheetHeader className="mb-6">
+                             <SheetTitle>Editor Tools</SheetTitle>
+                             <SheetDescription>
+                               Select a tool to modify your document
+                             </SheetDescription>
+                           </SheetHeader>
+                           <div className="space-y-8">
+                             <div className="p-1">
+                               <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 px-1">Main Toolbar</h3>
+                               <EditorToolbar 
+                                 activeTool={activeTool} 
+                                 onToolSelect={(tool) => {
+                                   handleToolSelect(tool)
+                                   setIsSheetOpen(false)
+                                 }} 
+                                 canUndo={historyIndex > 0}
+                                 canRedo={historyIndex < history.length - 1}
+                                 onUndo={handleUndo}
+                                 onRedo={handleRedo}
+                                 onAction={() => setIsSheetOpen(false)}
+                               />
+                             </div>
+                             <SidebarTools
+                               savedSignature={savedSignature}
+                               setSavedSignature={setSavedSignature}
+                               savedInitials={savedInitials}
+                               setSavedInitials={setSavedInitials}
+                               setSignatureMode={setSignatureMode}
+                               setShowSignatureModal={setShowSignatureModal}
+                               setPendingContent={setPendingContent}
+                               handleToolSelect={handleToolSelect}
+                               downloadSignedDocument={downloadSignedDocument}
+                               isProcessing={isProcessing}
+                               elements={elements}
+                               handleClearFile={handleClearFile}
+                               selectedElementId={selectedElementId}
+                               setSelectedElementId={setSelectedElementId}
+                               handleRemoveElement={handleRemoveElement}
+                               onAction={() => setIsSheetOpen(false)}
+                             />
+                           </div>
+                         </SheetContent>
+                       </Sheet>
+
+                       <Button 
+                         onClick={downloadSignedDocument}
+                         disabled={elements.length === 0 || isProcessing}
+                         className="h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 px-4 shadow-lg shadow-indigo-500/20"
+                       >
+                         {isProcessing ? (
+                           <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                         ) : (
+                           <>
+                             <Download size={18} />
+                             <span className="hidden sm:inline">Download</span>
+                           </>
+                         )}
+                       </Button>
+                     </div>
+
+                     <div className="hidden xs:flex px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold text-slate-500 items-center gap-2">
+                       <CheckCircle2 size={14} className="text-emerald-500" />
+                       <span className="hidden sm:inline">Encrypted Secure Session</span>
+                     </div>
+                  </div>
               </div>
 
               <div className="min-h-[700px] flex">
@@ -535,6 +547,20 @@ export function EsignTool() {
           onSave={handleSignatureSave}
           onCancel={() => setShowSignatureModal(false)}
           mode={signatureMode}
+        />
+      )}
+
+      {showTextModal && (
+        <TextModal
+          onSave={handleTextSave}
+          onCancel={() => setShowTextModal(false)}
+        />
+      )}
+
+      {showDateModal && (
+        <DateModal
+          onSave={handleDateSave}
+          onCancel={() => setShowDateModal(false)}
         />
       )}
 

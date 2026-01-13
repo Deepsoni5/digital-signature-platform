@@ -217,6 +217,7 @@ export function DraggableElement({
       }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
+      onClick={(e) => e.stopPropagation()}
     >
       <div className={cn(
         "w-full h-full overflow-hidden transition-all",
