@@ -54,28 +54,38 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
         maxWidth: 3,
       })
 
-        const resizeCanvas = () => {
-          const ratio = Math.max(window.devicePixelRatio || 1, 1)
-          const rect = canvas.getBoundingClientRect()
-          canvas.width = rect.width * ratio
-          canvas.height = rect.height * ratio
-          canvas.getContext("2d")?.scale(ratio, ratio)
-          signaturePadRef.current?.clear()
-          setHasStrokes(false)
+      const resizeCanvas = () => {
+        const ratio = Math.max(window.devicePixelRatio || 1, 1)
+        const rect = canvas.getBoundingClientRect()
+
+        // Increase resolution by 2x for better quality
+        canvas.width = rect.width * ratio * 2
+        canvas.height = rect.height * ratio * 2
+
+        const ctx = canvas.getContext("2d")
+        if (ctx) {
+          ctx.scale(ratio * 2, ratio * 2)
         }
 
-        resizeCanvas()
-        window.addEventListener("resize", resizeCanvas)
-
-        signaturePadRef.current.onEnd = () => {
-          setHasStrokes(true)
+        // Reinitialize signature pad with new dimensions
+        if (signaturePadRef.current) {
+          signaturePadRef.current.clear()
         }
-
-        return () => {
-          window.removeEventListener("resize", resizeCanvas)
-        }
+        setHasStrokes(false)
       }
-    }, [activeTab, selectedColor])
+
+      resizeCanvas()
+      window.addEventListener("resize", resizeCanvas)
+
+      signaturePadRef.current.onEnd = () => {
+        setHasStrokes(true)
+      }
+
+      return () => {
+        window.removeEventListener("resize", resizeCanvas)
+      }
+    }
+  }, [activeTab, selectedColor])
 
 
   const handleClear = () => {
@@ -92,13 +102,6 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
     }
   }
 
-  const handleSaveDraw = () => {
-    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
-      const dataUrl = signaturePadRef.current.toDataURL("image/png")
-      onSave(dataUrl)
-    }
-  }
-
   const handleSaveTyped = () => {
     if (!typedText.trim()) return
 
@@ -106,19 +109,54 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    const fontSize = mode === "initials" ? 40 : 48
-    ctx.font = `${fontSize}px ${selectedFont.style}`
-    const metrics = ctx.measureText(typedText)
-    
-    canvas.width = metrics.width + 20
-    canvas.height = fontSize + 40
-    
+    // Create canvas to match the target size (200x80) at 3x resolution for quality
+    const targetWidth = 200
+    const targetHeight = 80
+    const scale = 3 // 3x for high quality
+
+    canvas.width = targetWidth * scale
+    canvas.height = targetHeight * scale
+
+    // Calculate font size to fit nicely in the canvas
+    const fontSize = (mode === "initials" ? 50 : 60) * scale
     ctx.font = `${fontSize}px ${selectedFont.style}`
     ctx.fillStyle = selectedColor
     ctx.textBaseline = "middle"
-    ctx.fillText(typedText, 10, canvas.height / 2)
+    ctx.textAlign = "center"
 
+    // Draw text centered
+    ctx.fillText(typedText, canvas.width / 2, canvas.height / 2)
+
+    // Export as PNG with high quality
     onSave(canvas.toDataURL("image/png"))
+  }
+
+  const handleSaveDraw = () => {
+    if (signaturePadRef.current && !signaturePadRef.current.isEmpty()) {
+      const originalCanvas = canvasRef.current
+      if (!originalCanvas) return
+
+      // Create a canvas that matches target size at high resolution
+      const targetWidth = 200
+      const targetHeight = 80
+      const scale = 3 // 3x resolution
+
+      const highResCanvas = document.createElement("canvas")
+      const ctx = highResCanvas.getContext("2d")
+      if (!ctx) return
+
+      highResCanvas.width = targetWidth * scale
+      highResCanvas.height = targetHeight * scale
+
+      // Calculate scaling to fit original canvas into target dimensions
+      const scaleX = highResCanvas.width / originalCanvas.width
+      const scaleY = highResCanvas.height / originalCanvas.height
+
+      ctx.scale(scaleX, scaleY)
+      ctx.drawImage(originalCanvas, 0, 0)
+
+      onSave(highResCanvas.toDataURL("image/png"))
+    }
   }
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,9 +210,8 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
                   <button
                     key={color.value}
                     onClick={() => setSelectedColor(color.value)}
-                    className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                      selectedColor === color.value ? "border-indigo-600 scale-110 ring-2 ring-indigo-200" : "border-transparent"
-                    }`}
+                    className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${selectedColor === color.value ? "border-indigo-600 scale-110 ring-2 ring-indigo-200" : "border-transparent"
+                      }`}
                     style={{ backgroundColor: color.value }}
                     title={color.name}
                   />
@@ -191,25 +228,24 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
               className="text-xl h-14 rounded-xl border-2 focus:ring-indigo-500"
               maxLength={mode === "initials" ? 5 : 50}
             />
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[240px] overflow-y-auto pr-2">
               {FONTS.map((font) => (
                 <button
                   key={font.name}
                   onClick={() => setSelectedFont(font)}
-                  className={`p-6 rounded-2xl border-2 transition-all text-center relative ${
-                    selectedFont.name === font.name
-                      ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20"
-                      : "border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800"
-                  }`}
+                  className={`p-6 rounded-2xl border-2 transition-all text-center relative ${selectedFont.name === font.name
+                    ? "border-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/20"
+                    : "border-slate-100 dark:border-slate-800 hover:border-indigo-200 dark:hover:border-indigo-800"
+                    }`}
                 >
                   {selectedFont.name === font.name && (
                     <div className="absolute top-2 right-2 h-4 w-4 bg-indigo-600 rounded-full flex items-center justify-center">
                       <Check size={10} className="text-white" />
                     </div>
                   )}
-                  <span 
-                    style={{ fontFamily: font.style, color: selectedColor }} 
+                  <span
+                    style={{ fontFamily: font.style, color: selectedColor }}
                     className="text-2xl sm:text-3xl block truncate"
                   >
                     {typedText || (mode === "initials" ? "AB" : "John Doe")}
@@ -217,14 +253,14 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
                 </button>
               ))}
             </div>
-            
+
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button variant="ghost" size="lg" onClick={onCancel} className="rounded-xl">
                 Cancel
               </Button>
-              <Button 
-                size="lg" 
-                onClick={handleSaveTyped} 
+              <Button
+                size="lg"
+                onClick={handleSaveTyped}
                 disabled={!typedText.trim()}
                 className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-8"
               >
@@ -241,14 +277,14 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
               />
               <div className="absolute bottom-4 left-4 right-4 border-t-2 border-slate-200 dark:border-slate-800 pointer-events-none opacity-50" />
               {hasStrokes && (
-                 <Button 
-                    variant="outline" 
-                    size="icon" 
-                    className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 dark:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={handleClear}
-                 >
-                    <Trash2 size={14} className="text-destructive" />
-                 </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 dark:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={handleClear}
+                >
+                  <Trash2 size={14} className="text-destructive" />
+                </Button>
               )}
             </div>
             <div className="flex items-center justify-between gap-3">
@@ -272,7 +308,7 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
           </TabsContent>
 
           <TabsContent value="upload" className="space-y-6">
-            <div 
+            <div
               className="aspect-[2.5/1] w-full border-2 border-dashed rounded-2xl bg-slate-50 dark:bg-slate-900/50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors overflow-hidden p-4"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -283,13 +319,13 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
                 className="hidden"
                 onChange={handleFileUpload}
               />
-              
+
               {uploadedImage ? (
                 <div className="relative h-full w-full flex items-center justify-center">
                   <img src={uploadedImage} alt="Uploaded signature" className="max-h-full max-w-full object-contain" />
-                  <Button 
-                    variant="destructive" 
-                    size="icon" 
+                  <Button
+                    variant="destructive"
+                    size="icon"
                     className="absolute top-0 right-0 h-8 w-8 rounded-full shadow-lg"
                     onClick={(e) => {
                       e.stopPropagation()
@@ -311,14 +347,14 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
                 </>
               )}
             </div>
-            
+
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button variant="ghost" size="lg" onClick={onCancel} className="rounded-xl">
                 Cancel
               </Button>
-              <Button 
-                size="lg" 
-                onClick={handleSaveUpload} 
+              <Button
+                size="lg"
+                onClick={handleSaveUpload}
                 disabled={!uploadedImage}
                 className="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-8"
               >

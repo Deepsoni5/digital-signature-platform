@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     siteName: "ESignVia",
     images: [
       {
-        url: "/icon.svg",
+        url: "/favi.png",
         width: 800,
         height: 600,
       },
@@ -30,11 +30,11 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ESignVia | Professional Electronic Signatures",
     description: "Secure, fast, and professional e-signature solutions.",
-    images: ["/icon.svg"],
+    images: ["/favi.png"],
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: "/favi.png",
+    apple: "/favi.png",
   },
 };
 
@@ -46,12 +46,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem
-            disableTransitionOnChange
-          >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
           <Script
             id="orchids-browser-logs"
             src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"

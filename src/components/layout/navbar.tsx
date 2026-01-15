@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { PenTool, Moon, Sun, Menu, X } from "lucide-react"
+import { Moon, Sun, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -16,22 +16,25 @@ export function Navbar() {
 
   useEffect(() => setMounted(true), [])
 
-    const navLinks = [
-      { name: "Home", href: "/" },
-      { name: "About Us", href: "/about" },
-      { name: "Contact", href: "/contact" },
-      { name: "e-Sign", href: "/esign" },
-    ]
+  const navLinks = [
+    { name: "Home", href: "/" },
+    { name: "About Us", href: "/about" },
+    { name: "Contact", href: "/contact" },
+    { name: "e-Sign", href: "/esign" },
+  ]
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-            <PenTool size={24} />
-          </div>
-          <span className="text-xl font-bold tracking-tight">ESignVia</span>
-        </Link>
+        <div className="relative h-16 w-56 shrink-0">
+          <Link href="/" className="absolute left-0 top-1/2 -translate-y-1/2 z-10 transition-all hover:scale-105 active:scale-95">
+            <img
+              src="/e_logo.png"
+              alt="ESignVia Logo"
+              className="h-28 w-auto object-contain drop-shadow-sm"
+            />
+          </Link>
+        </div>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex md:items-center md:gap-8">

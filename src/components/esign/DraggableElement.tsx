@@ -65,9 +65,9 @@ export function DraggableElement({
       if (isDragging) {
         const newX = e.clientX / zoom - dragStart.x
         const newY = e.clientY / zoom - dragStart.y
-        onUpdate({ 
-          x: newX, 
-          y: newY 
+        onUpdate({
+          x: newX,
+          y: newY
         })
       }
       if (isResizing) {
@@ -75,9 +75,9 @@ export function DraggableElement({
         if (rect) {
           const newWidth = Math.max(20, (e.clientX - rect.left) / zoom - element.x)
           const newHeight = Math.max(20, (e.clientY - rect.top) / zoom - element.y)
-          onUpdate({ 
-            width: newWidth, 
-            height: newHeight 
+          onUpdate({
+            width: newWidth,
+            height: newHeight
           })
         }
       }
@@ -88,9 +88,9 @@ export function DraggableElement({
       if (isDragging) {
         const newX = touch.clientX / zoom - dragStart.x
         const newY = touch.clientY / zoom - dragStart.y
-        onUpdate({ 
-          x: newX, 
-          y: newY 
+        onUpdate({
+          x: newX,
+          y: newY
         })
       }
     }
@@ -159,7 +159,7 @@ export function DraggableElement({
                   if (e.key === "Escape") setIsEditing(false)
                 }}
               />
-              <button 
+              <button
                 onClick={handleSaveEdit}
                 className="h-6 w-6 bg-indigo-600 text-white rounded flex items-center justify-center shrink-0"
               >
@@ -169,13 +169,13 @@ export function DraggableElement({
           )
         }
         return (
-          <div 
+          <div
             className="w-full h-full flex items-center px-2 text-sm font-medium cursor-text"
             onDoubleClick={() => setIsEditing(true)}
-            style={{ 
-              fontSize: (element.fontSize || 14) * zoom, 
-              fontFamily: element.fontFamily || "Arial", 
-              color: element.color || "#000" 
+            style={{
+              fontSize: (element.fontSize || 14) * zoom,
+              fontFamily: element.fontFamily || "Arial",
+              color: element.color || "#000"
             }}
           >
             {element.content || (element.type === "text" ? "Type something..." : "Select date")}
@@ -187,8 +187,8 @@ export function DraggableElement({
             onClick={handleCheckboxToggle}
             className={cn(
               "w-full h-full border-2 rounded flex items-center justify-center transition-colors",
-              element.checked 
-                ? "bg-indigo-600 border-indigo-600 text-white" 
+              element.checked
+                ? "bg-indigo-600 border-indigo-600 text-white"
                 : "bg-white border-slate-400"
             )}
           >

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { PenTool, Mail, Phone, MapPin } from "lucide-react"
+import { Mail, Phone, MapPin } from "lucide-react"
 
 export function Footer() {
   return (
@@ -7,18 +7,19 @@ export function Footer() {
       <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
           <div className="col-span-1 md:col-span-2">
-            <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <PenTool size={18} />
-              </div>
-              <span className="text-lg font-bold tracking-tight">ESignVia</span>
+            <Link href="/" className="flex items-center mb-6">
+              <img
+                src="/e_logo.png"
+                alt="ESignVia Logo"
+                className="h-28 w-auto object-contain"
+              />
             </Link>
             <p className="max-w-xs text-sm text-muted-foreground">
-              Secure, fast, and professional e-signature solutions for your documents. 
+              Secure, fast, and professional e-signature solutions for your documents.
               Upload, sign, and download with ease.
             </p>
           </div>
-          
+
           <div>
             <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-foreground">Contact Us</h3>
             <ul className="space-y-3 text-sm text-muted-foreground">
@@ -65,7 +66,7 @@ export function Footer() {
             </ul>
           </div>
         </div>
-        
+
         <div className="mt-12 border-t pt-8 text-center text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} ESignVia (MADHYAVARTI SOLUTIONS PRIVATE LIMITED). All rights reserved.</p>
         </div>

@@ -216,20 +216,20 @@ export default function DocumentCanvasInner({
         className="flex-1 overflow-auto p-8 flex justify-center items-start custom-scrollbar"
         onClick={() => onSelectElement(null)}
       >
-            <div
-              ref={wrapperRef}
-              className={cn("relative shadow-2xl origin-top-left bg-white")}
-              style={{
-                width: canvasRef.current?.width || "auto",
-                height: canvasRef.current?.height || "auto",
-                transform: `scale(${zoom})`,
-                transformOrigin: "top left",
-              }}
-              onClick={(e) => {
-                e.stopPropagation()
-                onSelectElement(null)
-              }}
-            >
+        <div
+          ref={wrapperRef}
+          className={cn("relative shadow-2xl origin-top-left bg-white")}
+          style={{
+            width: canvasRef.current?.width || "auto",
+            height: canvasRef.current?.height || "auto",
+            transform: `scale(${zoom})`,
+            transformOrigin: "top left",
+          }}
+          onClick={(e) => {
+            e.stopPropagation()
+            onSelectElement(null)
+          }}
+        >
 
           <canvas ref={canvasRef} className="bg-white block w-full h-full" />
 
