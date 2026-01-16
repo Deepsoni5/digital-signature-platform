@@ -14,6 +14,9 @@ export async function syncUserToSupabase({
     imageUrl,
 }: SyncUserParams) {
     try {
+        if (!supabase) {
+            return { success: false, error: "Supabase not configured" }
+        }
         const { data, error } = await supabase
             .from("users")
             .upsert(
@@ -34,7 +37,7 @@ export async function syncUserToSupabase({
             return { success: false, error }
         }
 
-        return { success: true, data }
+        return { success: true, data, isPremium: data?.is_premium || false }
     } catch (error) {
         console.error("Unexpected error in syncUserToSupabase:", error)
         return { success: false, error }

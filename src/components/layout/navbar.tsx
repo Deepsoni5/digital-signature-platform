@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Moon, Sun, Menu, X } from "lucide-react"
+import { Moon, Sun, Menu, X, Rocket, ShieldCheck, CheckCircle2 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -12,15 +12,49 @@ import {
   SignedOut,
   SignInButton,
   UserButton,
+  useUser,
 } from '@clerk/nextjs'
+import { supabase } from "@/lib/supabase"
 
 export function Navbar() {
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
+  const [docCount, setDocCount] = useState(0)
+  const { user } = useUser()
 
-  useEffect(() => setMounted(true), [])
+  useEffect(() => {
+    setMounted(true)
+    if (user && supabase) {
+      const fetchData = async () => {
+        try {
+          // 1. Check Premium Status
+          const { data: userData } = await supabase
+            .from("users")
+            .select("id, is_premium")
+            .eq("clerk_id", user.id)
+            .single()
+
+          if (userData) {
+            setIsPremium(userData.is_premium)
+
+            // 2. Check Document Usage
+            const { count } = await supabase
+              .from("documents")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", userData.id)
+
+            setDocCount(count || 0)
+          }
+        } catch (e) {
+          console.error("Dashboard check skipped: Supabase not reachable.")
+        }
+      }
+      fetchData()
+    }
+  }, [user])
 
   const navLinks = [
     { name: "Home", href: "/" },
@@ -77,10 +111,24 @@ export function Navbar() {
                 <UserButton
                   appearance={{
                     elements: {
-                      userButtonAvatarBox: "h-9 w-9"
+                      userButtonAvatarBox: "h-9 w-9",
+                      userButtonPopoverFooter: { display: "none" }
                     }
                   }}
-                />
+                >
+                  <UserButton.MenuItems>
+                    <UserButton.Action
+                      label={isPremium ? "Pro Plan" : "Free Plan"}
+                      labelIcon={isPremium ? <ShieldCheck className="h-4 w-4 text-emerald-500" /> : <Rocket className="h-4 w-4 text-indigo-500" />}
+                      onClick={() => { }}
+                    />
+                    <UserButton.Action
+                      label={isPremium ? "Unlimited Signs" : `${docCount}/0 Signs (Upgrade)`}
+                      labelIcon={<CheckCircle2 className={cn("h-4 w-4", isPremium ? "text-emerald-500" : "text-rose-500")} />}
+                      onClick={() => { }}
+                    />
+                  </UserButton.MenuItems>
+                </UserButton>
               </SignedIn>
             </div>
             <Button asChild className="rounded-full">
@@ -90,7 +138,7 @@ export function Navbar() {
         </div>
 
         {/* Mobile Menu Toggle */}
-        <div className="flex items-center gap-4 md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
           {mounted && (
             <Button
               variant="ghost"
@@ -98,9 +146,36 @@ export function Navbar() {
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="rounded-full"
             >
-              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </Button>
           )}
+
+          <SignedIn>
+            <div className="mr-1 mt-1">
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonAvatarBox: "h-8 w-8",
+                    userButtonPopoverFooter: { display: "none" }
+                  }
+                }}
+              >
+                <UserButton.MenuItems>
+                  <UserButton.Action
+                    label={isPremium ? "Pro Plan" : "Free Plan"}
+                    labelIcon={isPremium ? <ShieldCheck className="h-4 w-4 text-emerald-500" /> : <Rocket className="h-4 w-4 text-indigo-500" />}
+                    onClick={() => { }}
+                  />
+                  <UserButton.Action
+                    label={isPremium ? "Unlimited Signs" : `${docCount}/0 Signs (Upgrade)`}
+                    labelIcon={<CheckCircle2 className={cn("h-4 w-4", isPremium ? "text-emerald-500" : "text-rose-500")} />}
+                    onClick={() => { }}
+                  />
+                </UserButton.MenuItems>
+              </UserButton>
+            </div>
+          </SignedIn>
+
           <Button
             variant="ghost"
             size="icon"
@@ -138,7 +213,27 @@ export function Navbar() {
               <SignedIn>
                 <div className="flex items-center justify-between px-2">
                   <span className="text-sm font-medium text-muted-foreground">Account</span>
-                  <UserButton />
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        footer: { display: "none" },
+                        userButtonPopoverFooter: { display: "none" }
+                      }
+                    }}
+                  >
+                    <UserButton.MenuItems>
+                      <UserButton.Action
+                        label={isPremium ? "Pro Plan" : "Free Plan"}
+                        labelIcon={isPremium ? <ShieldCheck className="h-4 w-4 text-emerald-500" /> : <Rocket className="h-4 w-4 text-indigo-500" />}
+                        onClick={() => { }}
+                      />
+                      <UserButton.Action
+                        label={isPremium ? "Unlimited Signs" : `${docCount}/0 Signs (Upgrade)`}
+                        labelIcon={<CheckCircle2 className={cn("h-4 w-4", isPremium ? "text-emerald-500" : "text-rose-500")} />}
+                        onClick={() => { }}
+                      />
+                    </UserButton.MenuItems>
+                  </UserButton>
                 </div>
               </SignedIn>
             </div>
