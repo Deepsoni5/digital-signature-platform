@@ -144,6 +144,8 @@ export function EsignTool() {
     }
   }
 
+  // Replace handleSignatureSave in EsignTool.tsx
+
   const handleSignatureSave = (dataUrl: string) => {
     if (signatureMode === "signature") {
       setSavedSignature(dataUrl)
@@ -152,19 +154,64 @@ export function EsignTool() {
     }
     setShowSignatureModal(false)
 
-    const type = signatureMode === "signature" ? "signature" : "initials"
-    const config = TOOL_CONFIGS[type]
-    handleAddElement({
-      type,
-      content: dataUrl,
-      x: 100,
-      y: signatureMode === "signature" ? 100 : 150,
-      width: config.defaultWidth,
-      height: config.defaultHeight,
-      pageNumber,
-    })
+    // Load image to get natural dimensions
+    const img = new Image()
+    img.onload = () => {
+      const type = signatureMode === "signature" ? "signature" : "initials"
 
-    toast.success(`${signatureMode === "signature" ? "Signature" : "Initials"} saved and added!`)
+      // Calculate smart sizing
+      const maxWidth = 350 // Maximum width for signatures
+      const maxHeight = 120 // Maximum height
+
+      let width = img.width
+      let height = img.height
+
+      // Scale down if too large, but maintain aspect ratio
+      if (width > maxWidth || height > maxHeight) {
+        const widthScale = maxWidth / width
+        const heightScale = maxHeight / height
+        const scale = Math.min(widthScale, heightScale)
+        width = width * scale
+        height = height * scale
+      }
+
+      // Ensure minimum size for usability
+      const minWidth = 80
+      const minHeight = 30
+      if (width < minWidth) {
+        const scale = minWidth / width
+        width = minWidth
+        height = height * scale
+      }
+
+      handleAddElement({
+        type,
+        content: dataUrl,
+        x: 100,
+        y: signatureMode === "signature" ? 100 : 150,
+        width,
+        height,
+        pageNumber,
+      })
+
+      toast.success(`${signatureMode === "signature" ? "Signature" : "Initials"} saved and added!`)
+    }
+    img.onerror = () => {
+      // Fallback to default size if image load fails
+      const type = signatureMode === "signature" ? "signature" : "initials"
+      const config = TOOL_CONFIGS[type]
+      handleAddElement({
+        type,
+        content: dataUrl,
+        x: 100,
+        y: signatureMode === "signature" ? 100 : 150,
+        width: config.defaultWidth,
+        height: config.defaultHeight,
+        pageNumber,
+      })
+      toast.success(`${signatureMode === "signature" ? "Signature" : "Initials"} saved and added!`)
+    }
+    img.src = dataUrl
   }
 
   const handleTextSave = (text: string) => {
@@ -266,14 +313,18 @@ export function EsignTool() {
         const pdfDoc = await PDFDocument.load(fileBuffer)
         const pages = pdfDoc.getPages()
 
-        // Get canvas dimensions to calculate scale factor
+        // Get the actual canvas element
         const canvasElement = document.querySelector('canvas') as HTMLCanvasElement
         if (!canvasElement) {
           toast.error("Canvas not found")
           return
         }
 
-        // Group elements by page for efficiency
+        console.log('=== PDF EXPORT ===')
+        console.log('Canvas:', canvasElement.width, 'x', canvasElement.height)
+        console.log('Device pixel ratio:', window.devicePixelRatio)
+
+        // Group elements by page
         const elementsByPage = elements.reduce((acc, el) => {
           if (!acc[el.pageNumber]) acc[el.pageNumber] = []
           acc[el.pageNumber].push(el)
@@ -287,64 +338,57 @@ export function EsignTool() {
 
           const { width: pdfWidth, height: pdfHeight } = page.getSize()
 
-          // Calculate scale factor between canvas and PDF
-          // Canvas is rendered at scale 1, which means viewport scale 1
-          // We need to match canvas pixel dimensions to PDF points
+          // Calculate scale between canvas pixels and PDF points
           const scaleX = pdfWidth / canvasElement.width
           const scaleY = pdfHeight / canvasElement.height
 
-          // DEBUG: Log the values
-          console.log('=== PDF EXPORT DEBUG ===')
-          console.log('Canvas dimensions:', canvasElement.width, 'x', canvasElement.height)
-          console.log('PDF dimensions:', pdfWidth, 'x', pdfHeight)
-          console.log('Scale factors:', scaleX, scaleY)
-          console.log('Elements on this page:', pageElements.length)
-
           for (const el of pageElements) {
-            // Direct 1:1 mapping since scales are 1
-            const x = el.x
-            const y = pdfHeight - el.y - el.height
-            const w = el.width
-            const h = el.height
-
-            console.log('Element:', el.type)
-            console.log('Original:', { x: el.x, y: el.y, w: el.width, h: el.height })
-            console.log('PDF coords:', { x, y, w, h })
-            console.log('PDF will draw at:', `x:${x}, y:${y}, width:${w}, height:${h}`)
+            // Convert canvas coordinates to PDF coordinates
+            const pdfX = el.x * scaleX
+            const pdfY = pdfHeight - (el.y * scaleY) - (el.height * scaleY)
+            const pdfW = el.width * scaleX
+            const pdfH = el.height * scaleY
 
             if (el.type === "signature" || el.type === "initials" || el.type === "image") {
               try {
-                // Fetch and process the image
-                const imgResponse = await fetch(el.content)
-                const imgBlob = await imgResponse.blob()
-                const imgBytes = await imgBlob.arrayBuffer()
+                // Create a temporary canvas to render the signature at the exact size it appears
+                const tempCanvas = document.createElement('canvas')
+                const tempCtx = tempCanvas.getContext('2d')
+                if (!tempCtx) continue
 
-                console.log('Image blob size:', imgBlob.size, 'bytes')
-                console.log('Image type:', imgBlob.type)
+                // Set canvas to exact PDF dimensions for this element
+                const resolution = 3 // 3x for quality
+                tempCanvas.width = pdfW * resolution
+                tempCanvas.height = pdfH * resolution
 
-                // Embed based on image type
-                let img
-                if (el.content.includes("image/png") || el.content.includes("data:image/png")) {
-                  img = await pdfDoc.embedPng(imgBytes)
-                } else if (el.content.includes("image/jpeg") || el.content.includes("image/jpg")) {
-                  img = await pdfDoc.embedJpg(imgBytes)
-                } else {
-                  img = await pdfDoc.embedPng(imgBytes)
-                }
+                // Load the signature image
+                const img = new Image()
+                img.crossOrigin = 'anonymous'
 
-                console.log('Embedded image dimensions:', img.width, 'x', img.height)
-                console.log('Drawing at size:', w, 'x', h)
-                console.log('Scale ratio:', `${(w / img.width).toFixed(2)}x horizontal, ${(h / img.height).toFixed(2)}x vertical`)
-
-                page.drawImage(img, {
-                  x,
-                  y,
-                  width: w,
-                  height: h,
-                  opacity: 1
+                await new Promise<void>((resolve, reject) => {
+                  img.onload = () => {
+                    // Draw image to fill the entire canvas
+                    tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height)
+                    resolve()
+                  }
+                  img.onerror = reject
+                  img.src = el.content
                 })
 
-                console.log('✓ Image drawn successfully')
+                // Convert to PNG bytes
+                const dataUrl = tempCanvas.toDataURL('image/png')
+                const base64Data = dataUrl.split(',')[1]
+                const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0))
+
+                // Embed in PDF
+                const pdfImage = await pdfDoc.embedPng(imageBytes)
+
+                page.drawImage(pdfImage, {
+                  x: pdfX,
+                  y: pdfY,
+                  width: pdfW,
+                  height: pdfH,
+                })
               } catch (err) {
                 console.error("Error embedding image:", err)
               }
@@ -352,45 +396,38 @@ export function EsignTool() {
               const font = await pdfDoc.embedFont("Helvetica")
               const fontSize = (el.fontSize || 14) * scaleY
 
-              // Adjust text baseline for proper vertical centering
-              const textHeight = font.heightAtSize(fontSize)
-              const yOffset = (h - textHeight) / 2
-
               page.drawText(el.content, {
-                x: x + 5 * scaleX, // Scale padding too
-                y: y + yOffset,
+                x: pdfX + (5 * scaleX),
+                y: pdfY + (pdfH / 2) - (fontSize / 3),
                 size: fontSize,
                 font,
                 color: rgb(0, 0, 0),
               })
             } else if (el.type === "checkbox") {
-              // Draw checkbox border
               page.drawRectangle({
-                x,
-                y,
-                width: w,
-                height: h,
+                x: pdfX,
+                y: pdfY,
+                width: pdfW,
+                height: pdfH,
                 borderColor: rgb(0.2, 0.2, 0.2),
-                borderWidth: 2 * Math.min(scaleX, scaleY),
+                borderWidth: 2,
               })
 
-              // Draw checkmark if checked
               if (el.checked) {
-                const checkSize = Math.min(w, h) * 0.6
-                const centerX = x + w / 2
-                const centerY = y + h / 2
+                const checkSize = Math.min(pdfW, pdfH) * 0.6
+                const centerX = pdfX + pdfW / 2
+                const centerY = pdfY + pdfH / 2
 
-                // Draw checkmark as two lines
                 page.drawLine({
                   start: { x: centerX - checkSize / 3, y: centerY },
                   end: { x: centerX - checkSize / 6, y: centerY - checkSize / 3 },
-                  thickness: 2.5 * Math.min(scaleX, scaleY),
+                  thickness: 2.5,
                   color: rgb(0.2, 0.4, 0.8),
                 })
                 page.drawLine({
                   start: { x: centerX - checkSize / 6, y: centerY - checkSize / 3 },
                   end: { x: centerX + checkSize / 3, y: centerY + checkSize / 3 },
-                  thickness: 2.5 * Math.min(scaleX, scaleY),
+                  thickness: 2.5,
                   color: rgb(0.2, 0.4, 0.8),
                 })
               }
@@ -424,12 +461,10 @@ export function EsignTool() {
         canvas.height = img.height
         ctx.drawImage(img, 0, 0)
 
-        // Get canvas element to calculate scale
         const canvasElement = document.querySelector('canvas') as HTMLCanvasElement
         const scaleX = img.width / (canvasElement?.width || img.width)
         const scaleY = img.height / (canvasElement?.height || img.height)
 
-        // Draw elements
         for (const el of elements.filter(e => e.pageNumber === 1)) {
           const x = el.x * scaleX
           const y = el.y * scaleY
@@ -443,7 +478,7 @@ export function EsignTool() {
                 ctx.drawImage(sigImg, x, y, w, h)
                 resolve()
               }
-              sigImg.onerror = () => resolve() // Skip on error
+              sigImg.onerror = () => resolve()
               sigImg.src = el.content
             })
           } else if (el.type === "text" || el.type === "date") {
@@ -454,12 +489,12 @@ export function EsignTool() {
             ctx.fillText(el.content, x + 5 * scaleX, y + h / 2)
           } else if (el.type === "checkbox") {
             ctx.strokeStyle = "#333"
-            ctx.lineWidth = 2 * Math.min(scaleX, scaleY)
+            ctx.lineWidth = 2
             ctx.strokeRect(x, y, w, h)
 
             if (el.checked) {
               ctx.strokeStyle = "#3366cc"
-              ctx.lineWidth = 3 * Math.min(scaleX, scaleY)
+              ctx.lineWidth = 3
               ctx.beginPath()
               ctx.moveTo(x + w * 0.2, y + h * 0.5)
               ctx.lineTo(x + w * 0.4, y + h * 0.7)

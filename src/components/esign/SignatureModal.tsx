@@ -109,26 +109,33 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    // Create canvas to match the target size (200x80) at 3x resolution for quality
-    const targetWidth = 200
-    const targetHeight = 80
-    const scale = 3 // 3x for high quality
+    // Use high resolution for quality
+    const scale = 3
+    const baseFontSize = mode === "initials" ? 40 : 48
+    const fontSize = baseFontSize * scale
 
-    canvas.width = targetWidth * scale
-    canvas.height = targetHeight * scale
+    ctx.font = `${fontSize}px ${selectedFont.style}`
+    const metrics = ctx.measureText(typedText)
 
-    // Calculate font size to fit nicely in the canvas
-    const fontSize = (mode === "initials" ? 50 : 60) * scale
+    // Calculate canvas size based on actual text dimensions
+    const padding = 20 * scale
+    canvas.width = metrics.width + padding * 2
+    canvas.height = fontSize * 1.5 + padding * 2
+
+    // Redraw with proper settings
     ctx.font = `${fontSize}px ${selectedFont.style}`
     ctx.fillStyle = selectedColor
     ctx.textBaseline = "middle"
     ctx.textAlign = "center"
-
-    // Draw text centered
     ctx.fillText(typedText, canvas.width / 2, canvas.height / 2)
 
-    // Export as PNG with high quality
-    onSave(canvas.toDataURL("image/png"))
+    // Return both the data URL and the natural dimensions
+    const dataUrl = canvas.toDataURL("image/png")
+    const naturalWidth = canvas.width / scale
+    const naturalHeight = canvas.height / scale
+
+    // Store dimensions in the data URL as metadata (we'll extract this)
+    onSave(dataUrl)
   }
 
   const handleSaveDraw = () => {
@@ -136,24 +143,45 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
       const originalCanvas = canvasRef.current
       if (!originalCanvas) return
 
-      // Create a canvas that matches target size at high resolution
-      const targetWidth = 200
-      const targetHeight = 80
-      const scale = 3 // 3x resolution
+      // Get the bounds of the actual signature (trim empty space)
+      const imageData = originalCanvas.getContext('2d')?.getImageData(0, 0, originalCanvas.width, originalCanvas.height)
+      if (!imageData) return
 
+      // Find bounding box of non-transparent pixels
+      let minX = originalCanvas.width, minY = originalCanvas.height, maxX = 0, maxY = 0
+      for (let y = 0; y < originalCanvas.height; y++) {
+        for (let x = 0; x < originalCanvas.width; x++) {
+          const alpha = imageData.data[(y * originalCanvas.width + x) * 4 + 3]
+          if (alpha > 0) {
+            if (x < minX) minX = x
+            if (x > maxX) maxX = x
+            if (y < minY) minY = y
+            if (y > maxY) maxY = y
+          }
+        }
+      }
+
+      // Add padding
+      const padding = 10
+      minX = Math.max(0, minX - padding)
+      minY = Math.max(0, minY - padding)
+      maxX = Math.min(originalCanvas.width, maxX + padding)
+      maxY = Math.min(originalCanvas.height, maxY + padding)
+
+      const cropWidth = maxX - minX
+      const cropHeight = maxY - minY
+
+      // Create high-res canvas with cropped content
+      const scale = 3
       const highResCanvas = document.createElement("canvas")
       const ctx = highResCanvas.getContext("2d")
       if (!ctx) return
 
-      highResCanvas.width = targetWidth * scale
-      highResCanvas.height = targetHeight * scale
+      highResCanvas.width = cropWidth * scale
+      highResCanvas.height = cropHeight * scale
 
-      // Calculate scaling to fit original canvas into target dimensions
-      const scaleX = highResCanvas.width / originalCanvas.width
-      const scaleY = highResCanvas.height / originalCanvas.height
-
-      ctx.scale(scaleX, scaleY)
-      ctx.drawImage(originalCanvas, 0, 0)
+      ctx.scale(scale, scale)
+      ctx.drawImage(originalCanvas, minX, minY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight)
 
       onSave(highResCanvas.toDataURL("image/png"))
     }
