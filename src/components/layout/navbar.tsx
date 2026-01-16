@@ -7,6 +7,12 @@ import { Moon, Sun, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
+import {
+  SignedIn,
+  SignedOut,
+  SignInButton,
+  UserButton,
+} from '@clerk/nextjs'
 
 export function Navbar() {
   const pathname = usePathname()
@@ -61,6 +67,22 @@ export function Navbar() {
                 {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
               </Button>
             )}
+            <div className="flex items-center gap-4">
+              <SignedOut>
+                <Button variant="ghost" className="rounded-full" asChild>
+                  <Link href="/sign-in">Sign In</Link>
+                </Button>
+              </SignedOut>
+              <SignedIn>
+                <UserButton
+                  appearance={{
+                    elements: {
+                      userButtonAvatarBox: "h-9 w-9"
+                    }
+                  }}
+                />
+              </SignedIn>
+            </div>
             <Button asChild className="rounded-full">
               <Link href="/esign">Start Signing</Link>
             </Button>
@@ -107,6 +129,19 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
+            <div className="flex flex-col gap-3 py-2 border-t mt-2">
+              <SignedOut>
+                <Button variant="outline" className="w-full rounded-xl" asChild>
+                  <Link href="/sign-in" onClick={() => setIsMenuOpen(false)}>Sign In</Link>
+                </Button>
+              </SignedOut>
+              <SignedIn>
+                <div className="flex items-center justify-between px-2">
+                  <span className="text-sm font-medium text-muted-foreground">Account</span>
+                  <UserButton />
+                </div>
+              </SignedIn>
+            </div>
             <Button asChild className="w-full rounded-full">
               <Link href="/esign" onClick={() => setIsMenuOpen(false)}>
                 Start Signing

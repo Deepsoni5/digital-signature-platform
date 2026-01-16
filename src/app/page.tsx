@@ -1,13 +1,13 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { 
-  CheckCircle2, 
-  ShieldCheck, 
-  Zap, 
-  FileUp, 
-  PenTool, 
-    Download,
-    Lock,
+import {
+  CheckCircle2,
+  ShieldCheck,
+  Zap,
+  FileUp,
+  PenTool,
+  Download,
+  Lock,
   Globe,
   Clock,
   ArrowRight,
@@ -19,12 +19,17 @@ import {
 } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import {
+  SignedIn,
+  SignedOut,
+  SignUpButton,
+} from '@clerk/nextjs'
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
       <Navbar />
-      
+
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden pt-20 pb-24 lg:pt-32 lg:pb-40">
@@ -41,12 +46,22 @@ export default function Home() {
                 ESignVia provides the most intuitive way to upload, sign, and manage your documents. Built for speed, security, and the modern professional.
               </p>
               <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-                <Button size="lg" className="h-14 px-10 rounded-2xl text-lg font-bold shadow-2xl shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-all hover:scale-[1.02]" asChild>
-                  <Link href="/esign">
-                    Start Signing Now
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
+                <SignedOut>
+                  <Button size="lg" className="h-14 px-10 rounded-2xl text-lg font-bold shadow-2xl shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-all hover:scale-[1.02]" asChild>
+                    <Link href="/sign-up">
+                      Get Started for Free
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  </Button>
+                </SignedOut>
+                <SignedIn>
+                  <Button size="lg" className="h-14 px-10 rounded-2xl text-lg font-bold shadow-2xl shadow-indigo-500/20 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-all hover:scale-[1.02]" asChild>
+                    <Link href="/esign">
+                      Go to Editor
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  </Button>
+                </SignedIn>
                 <Button size="lg" variant="outline" className="h-14 px-10 rounded-2xl text-lg font-semibold border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 transition-all" asChild>
                   <Link href="/contact">
                     Contact Us
@@ -55,7 +70,7 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
+
           {/* Background Decorative Elements */}
           <div className="absolute top-1/2 left-1/2 -z-10 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/10 blur-[120px] dark:bg-indigo-500/5" />
           <div className="absolute top-0 right-0 -z-10 h-[600px] w-[600px] rounded-full bg-emerald-500/5 blur-[100px] dark:bg-emerald-500/2" />
@@ -121,11 +136,11 @@ export default function Home() {
                       <div className="h-4 w-5/6 bg-slate-100 dark:bg-slate-800/50 rounded-full" />
                       <div className="h-4 w-4/6 bg-slate-100 dark:bg-slate-800/50 rounded-full" />
                       <div className="pt-8 space-y-4">
-                         <div className="flex gap-4">
-                            <div className="h-4 w-24 bg-indigo-500/20 rounded-full" />
-                            <div className="h-4 w-32 bg-indigo-500/20 rounded-full" />
-                         </div>
-                         <div className="h-4 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full" />
+                        <div className="flex gap-4">
+                          <div className="h-4 w-24 bg-indigo-500/20 rounded-full" />
+                          <div className="h-4 w-32 bg-indigo-500/20 rounded-full" />
+                        </div>
+                        <div className="h-4 w-full bg-slate-100 dark:bg-slate-800/50 rounded-full" />
                       </div>
                     </div>
 
@@ -133,11 +148,11 @@ export default function Home() {
                     <div className="absolute bottom-12 right-12 w-64 bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border-2 border-dashed border-indigo-400/50 animate-in fade-in zoom-in duration-700 delay-300">
                       <div className="relative">
                         <svg viewBox="0 0 100 40" className="w-full h-16 text-slate-900 dark:text-white">
-                          <path 
-                            d="M10,30 Q30,5 50,25 T90,15" 
-                            fill="none" 
-                            stroke="currentColor" 
-                            strokeWidth="2" 
+                          <path
+                            d="M10,30 Q30,5 50,25 T90,15"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
                             strokeLinecap="round"
                             className="animate-draw"
                           />
@@ -167,11 +182,11 @@ export default function Home() {
                 <h2 className="text-sm font-bold uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 mb-4">The Workflow</h2>
                 <h3 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-slate-900 dark:text-white">Three steps to completion</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 gap-12 md:grid-cols-3 relative">
                 {/* Connecting Lines for Desktop */}
                 <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent -translate-y-1/2 -z-10" />
-                
+
                 {[
                   {
                     icon: <FileUp className="h-10 w-10 text-indigo-600" />,
@@ -268,7 +283,7 @@ export default function Home() {
                 <h2 className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4">Enterprise Grade</h2>
                 <h3 className="text-3xl font-bold tracking-tight sm:text-5xl">Modern Tools for Modern Teams</h3>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
                   {
@@ -403,9 +418,16 @@ export default function Home() {
                 Join thousands of professionals who save hours every week using ESignVia. No credit card, no hassle.
               </p>
               <div className="relative z-10 flex flex-col sm:flex-row items-center justify-center gap-6">
-                <Button size="lg" className="h-16 px-12 rounded-2xl text-xl font-bold bg-white text-indigo-600 hover:bg-slate-100 shadow-2xl transition-all hover:scale-105" asChild>
-                  <Link href="/esign">Start Signing Now</Link>
-                </Button>
+                <SignedOut>
+                  <Button size="lg" className="h-16 px-12 rounded-2xl text-xl font-bold bg-white text-indigo-600 hover:bg-slate-100 shadow-2xl transition-all hover:scale-105" asChild>
+                    <Link href="/sign-up">Create Free Account</Link>
+                  </Button>
+                </SignedOut>
+                <SignedIn>
+                  <Button size="lg" className="h-16 px-12 rounded-2xl text-xl font-bold bg-white text-indigo-600 hover:bg-slate-100 shadow-2xl transition-all hover:scale-105" asChild>
+                    <Link href="/esign">Open Editor</Link>
+                  </Button>
+                </SignedIn>
                 <div className="flex -space-x-4">
                   {[1, 2, 3, 4].map((i) => (
                     <div key={i} className="h-12 w-12 rounded-full border-4 border-indigo-600 bg-slate-300 flex items-center justify-center overflow-hidden">
