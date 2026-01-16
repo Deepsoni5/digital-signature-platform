@@ -313,15 +313,21 @@ export function EsignTool() {
         const pdfDoc = await PDFDocument.load(fileBuffer)
         const pages = pdfDoc.getPages()
 
-        // Get the actual canvas element
+        // Get the actual canvas element and its VISUAL dimensions (not pixel dimensions)
         const canvasElement = document.querySelector('canvas') as HTMLCanvasElement
         if (!canvasElement) {
           toast.error("Canvas not found")
           return
         }
 
-        console.log('=== PDF EXPORT ===')
-        console.log('Canvas:', canvasElement.width, 'x', canvasElement.height)
+        // CRITICAL: Use getBoundingClientRect for visual dimensions, not canvas.width/height
+        const canvasRect = canvasElement.getBoundingClientRect()
+        const visualWidth = canvasRect.width
+        const visualHeight = canvasRect.height
+
+        console.log('=== PDF EXPORT DEBUG ===')
+        console.log('Canvas pixel dimensions:', canvasElement.width, 'x', canvasElement.height)
+        console.log('Canvas VISUAL dimensions:', visualWidth, 'x', visualHeight)
         console.log('Device pixel ratio:', window.devicePixelRatio)
 
         // Group elements by page
@@ -338,16 +344,24 @@ export function EsignTool() {
 
           const { width: pdfWidth, height: pdfHeight } = page.getSize()
 
-          // Calculate scale between canvas pixels and PDF points
-          const scaleX = pdfWidth / canvasElement.width
-          const scaleY = pdfHeight / canvasElement.height
+          // CRITICAL FIX: Calculate scale using VISUAL dimensions, not pixel dimensions
+          // Elements are positioned relative to VISUAL canvas size
+          const scaleX = pdfWidth / visualWidth
+          const scaleY = pdfHeight / visualHeight
+
+          console.log('PDF dimensions:', pdfWidth, 'x', pdfHeight)
+          console.log('Scale factors:', scaleX, 'x', scaleY)
 
           for (const el of pageElements) {
-            // Convert canvas coordinates to PDF coordinates
+            // Convert VISUAL canvas coordinates to PDF coordinates
             const pdfX = el.x * scaleX
             const pdfY = pdfHeight - (el.y * scaleY) - (el.height * scaleY)
             const pdfW = el.width * scaleX
             const pdfH = el.height * scaleY
+
+            console.log('Element:', el.type)
+            console.log('Visual coords:', { x: el.x, y: el.y, w: el.width, h: el.height })
+            console.log('PDF coords:', { x: pdfX, y: pdfY, w: pdfW, h: pdfH })
 
             if (el.type === "signature" || el.type === "initials" || el.type === "image") {
               try {
@@ -438,7 +452,6 @@ export function EsignTool() {
         const pdfBytes = await pdfDoc.save()
         const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" })
         saveAs(blob, `signed_${file.name}`)
-
       } else {
         // Image handling
         const canvas = document.createElement("canvas")
@@ -462,8 +475,12 @@ export function EsignTool() {
         ctx.drawImage(img, 0, 0)
 
         const canvasElement = document.querySelector('canvas') as HTMLCanvasElement
-        const scaleX = img.width / (canvasElement?.width || img.width)
-        const scaleY = img.height / (canvasElement?.height || img.height)
+        const canvasRect = canvasElement?.getBoundingClientRect()
+        const visualWidth = canvasRect?.width || img.width
+        const visualHeight = canvasRect?.height || img.height
+
+        const scaleX = img.width / visualWidth
+        const scaleY = img.height / visualHeight
 
         for (const el of elements.filter(e => e.pageNumber === 1)) {
           const x = el.x * scaleX
