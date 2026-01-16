@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
   CheckCircle2,
   ShieldCheck,
@@ -15,7 +16,8 @@ import {
   Smartphone,
   Users,
   FolderHeart,
-  Bell
+  Bell,
+  Rocket
 } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -24,6 +26,8 @@ import {
   SignedOut,
   SignUpButton,
 } from '@clerk/nextjs'
+import { PricingSection } from "@/components/sections/pricing-section"
+import { FAQSection } from "@/components/sections/faq-section"
 
 export default function Home() {
   return (
@@ -372,39 +376,11 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Pricing Section */}
+        <PricingSection />
+
         {/* FAQ Section */}
-        <section className="py-24 bg-slate-50 dark:bg-slate-950">
-          <div className="container mx-auto px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl text-center mb-16">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 mb-4">FAQ</h2>
-              <h3 className="text-3xl font-bold tracking-tight sm:text-5xl">Common Questions</h3>
-            </div>
-            <div className="mx-auto max-w-3xl space-y-4">
-              {[
-                {
-                  q: "Is it free to sign documents?",
-                  a: "Yes! Our basic e-sign feature is completely free for individuals and small business needs."
-                },
-                {
-                  q: "Can I sign images like JPG or PNG?",
-                  a: "Absolutely. Our platform supports PDF, JPG, and PNG formats with identical signing capabilities."
-                },
-                {
-                  q: "Are the signatures legally valid?",
-                  a: "Yes, signatures created on ESignVia are legally binding in most jurisdictions under ESIGN and eIDAS acts."
-                }
-              ].map((faq, i) => (
-                <div key={i} className="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 hover:shadow-lg transition-all">
-                  <h4 className="text-lg font-bold mb-2 flex items-center justify-between">
-                    {faq.q}
-                    <Plus className="h-5 w-5 text-indigo-500 group-hover:rotate-45 transition-transform" />
-                  </h4>
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{faq.a}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <FAQSection />
 
         {/* CTA Section */}
         <section className="py-24 relative overflow-hidden">

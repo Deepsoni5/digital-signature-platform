@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback, useRef } from "react"
+import React, { useState, useCallback, useRef, useEffect } from "react"
 import { PDFDocument, rgb } from "pdf-lib"
 import { saveAs } from "file-saver"
 import { toast } from "sonner"
@@ -11,8 +11,12 @@ import { SignatureModal } from "./SignatureModal"
 import { TextModal } from "./TextModal"
 import { DateModal } from "./DateModal"
 import { ElementType, PlacedElement, TOOL_CONFIGS } from "./types"
+import { uploadSignedDocumentAction } from "@/app/actions/documents"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useUser } from "@clerk/nextjs"
+import { supabase } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 import {
   Download,
   Trash2,
@@ -42,6 +46,7 @@ import {
 } from "@/components/ui/sheet"
 
 export function EsignTool() {
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [activeTool, setActiveTool] = useState<ElementType | null>(null)
   const [elements, setElements] = useState<PlacedElement[]>([])
@@ -61,6 +66,40 @@ export function EsignTool() {
   const [savedSignature, setSavedSignature] = useState<string | null>(null)
   const [savedInitials, setSavedInitials] = useState<string | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
+
+  // Plan & Usage State
+  const { user } = useUser()
+  const [docLimit, setDocLimit] = useState<number>(0)
+  const [docCount, setDocCount] = useState<number>(0)
+  const [isPlanLoading, setIsPlanLoading] = useState(true)
+
+  const fetchPlanAndUsage = useCallback(async () => {
+    if (!user || !supabase) return
+    try {
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id, document_limit, is_premium")
+        .eq("clerk_id", user.id)
+        .single()
+
+      if (userData) {
+        setDocLimit(userData.document_limit || 0)
+        const { count } = await supabase
+          .from("documents")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userData.id)
+        setDocCount(count || 0)
+      }
+    } catch (error) {
+      console.error("Error fetching usage stats:", error)
+    } finally {
+      setIsPlanLoading(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    fetchPlanAndUsage()
+  }, [fetchPlanAndUsage])
 
   const imageInputRef = useRef<HTMLInputElement>(null)
 
@@ -93,8 +132,17 @@ export function EsignTool() {
   const handleFileSelect = (selectedFile: File) => {
     const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
     if (!allowedTypes.includes(selectedFile.type)) {
-      toast.error("Invalid file format. Only PDF, JPG, and PNG are allowed.", {
-        description: "Please upload a supported document format.",
+      toast.error("Invalid file format", {
+        description: "Only PDF, JPG, and PNG are supported.",
+      })
+      return
+    }
+
+    // NEW: Check document limit
+    if (docLimit <= 0) {
+      toast.error("Plan Limit Reached", {
+        description: "You have used all documents in your plan or are on a Free plan. Please upgrade to Pro for unlimited signing.",
+        duration: 5000,
       })
       return
     }
@@ -472,6 +520,24 @@ export function EsignTool() {
 
         const pdfBytes = await pdfDoc.save()
         const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" })
+
+        // --- NEW: Sync to Cloudinary & DB ---
+        const signedFile = new File([blob], `signed_${file.name}`, { type: "application/pdf" })
+        const formData = new FormData()
+        formData.append("file", signedFile)
+
+        const syncResult = await uploadSignedDocumentAction(formData)
+        if (!syncResult.success) {
+          console.error("Cloudinary Sync Error:", syncResult.error)
+          toast.error("Cloudinary Sync Failed", {
+            description: "Your file downloaded but couldn't be saved to history.",
+          })
+        } else {
+          // Refresh usage stats after successful sync
+          fetchPlanAndUsage()
+        }
+        // ------------------------------------
+
         saveAs(blob, `signed_${file.name}`)
       } else {
         // Image handling
@@ -546,9 +612,27 @@ export function EsignTool() {
 
         URL.revokeObjectURL(url)
 
-        canvas.toBlob((blob) => {
+        canvas.toBlob(async (blob) => {
           if (blob) {
-            saveAs(blob, `signed_${file.name.replace(/\.[^/.]+$/, "")}.png`)
+            // --- NEW: Sync to Cloudinary & DB ---
+            const fileName = `signed_${file.name.replace(/\.[^/.]+$/, "")}.png`
+            const signedFile = new File([blob], fileName, { type: "image/png" })
+            const formData = new FormData()
+            formData.append("file", signedFile)
+
+            const syncResult = await uploadSignedDocumentAction(formData)
+            if (!syncResult.success) {
+              console.error("Cloudinary Sync Error:", syncResult.error)
+              toast.error("Cloudinary Sync Failed", {
+                description: "Your file downloaded but couldn't be saved to history.",
+              })
+            } else {
+              // Refresh usage stats after successful sync
+              fetchPlanAndUsage()
+            }
+            // ------------------------------------
+
+            saveAs(blob, fileName)
           } else {
             toast.error("Download failed", {
               description: "Could not generate the signed image file.",
@@ -558,6 +642,11 @@ export function EsignTool() {
       }
 
       toast.success("Document signed and downloaded!")
+
+      // Redirect to refresh the tool for a new document
+      setTimeout(() => {
+        window.location.href = "/esign"
+      }, 1500)
     } catch (error) {
       console.error("Error saving document:", error)
       toast.error("Failed to download document", {
