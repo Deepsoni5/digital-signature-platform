@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react"
 import * as pdfjsLib from "pdfjs-dist"
+import { toast } from "sonner"
 import { ElementType, PlacedElement, TOOL_CONFIGS } from "./types"
 import { DraggableElement } from "./DraggableElement"
 import { Button } from "@/components/ui/button"
@@ -58,11 +59,21 @@ export default function DocumentCanvasInner({
       setIsImage(false)
       const reader = new FileReader()
       reader.onload = async (e) => {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const pdf = await pdfjsLib.getDocument({ data }).promise
-        setPdfDoc(pdf)
-        setNumPages(pdf.numPages)
-        setPageNumber(1)
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer)
+          const pdf = await pdfjsLib.getDocument({ data }).promise
+          setPdfDoc(pdf)
+          setNumPages(pdf.numPages)
+          setPageNumber(1)
+        } catch (error) {
+          console.error("Error loading PDF:", error)
+          toast.error("Failed to load PDF document", {
+            description: "The file might be corrupted or in an unsupported format.",
+          })
+        }
+      }
+      reader.onerror = () => {
+        toast.error("Failed to read the file.")
       }
       reader.readAsArrayBuffer(file)
     } else if (file.type.startsWith("image/")) {
@@ -94,6 +105,11 @@ export default function DocumentCanvasInner({
         canvasContext: ctx,
         viewport,
       }).promise
+    } catch (error) {
+      console.error("Error rendering page:", error)
+      toast.error(`Failed to render page ${num}`, {
+        description: "Please try refreshing the page or re-uploading the document.",
+      })
     } finally {
       setPageRendering(false)
     }
@@ -112,6 +128,11 @@ export default function DocumentCanvasInner({
       canvas.width = img.width
       canvas.height = img.height
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+    }
+    img.onerror = () => {
+      toast.error("Failed to load document image", {
+        description: "The image file might be corrupted.",
+      })
     }
 
     const reader = new FileReader()

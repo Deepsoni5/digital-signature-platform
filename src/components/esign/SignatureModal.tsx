@@ -5,6 +5,7 @@ import SignaturePad from "signature_pad"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "sonner"
 import { Eraser, Check, Undo, PenTool, Type, Upload, Trash2, X } from "lucide-react"
 
 interface SignatureModalProps {
@@ -190,9 +191,20 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Invalid image format. Only JPG and PNG are allowed.", {
+          description: " Please upload a supported signature image.",
+        })
+        return
+      }
+
       const reader = new FileReader()
       reader.onload = (event) => {
         setUploadedImage(event.target?.result as string)
+      }
+      reader.onerror = () => {
+        toast.error("Failed to read image file.")
       }
       reader.readAsDataURL(file)
     }

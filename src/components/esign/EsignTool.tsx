@@ -91,12 +91,20 @@ export function EsignTool() {
   }, [history, historyIndex])
 
   const handleFileSelect = (selectedFile: File) => {
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/jpg", "image/png"]
+    if (!allowedTypes.includes(selectedFile.type)) {
+      toast.error("Invalid file format. Only PDF, JPG, and PNG are allowed.", {
+        description: "Please upload a supported document format.",
+      })
+      return
+    }
+
     setFile(selectedFile)
     setElements([])
     setHistory([[]])
     setHistoryIndex(0)
     setPageNumber(1)
-    toast.success("Document uploaded!")
+    toast.success("Document uploaded successfully!")
   }
 
   const handleClearFile = () => {
@@ -249,6 +257,14 @@ export function EsignTool() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const imgFile = e.target.files?.[0]
     if (imgFile) {
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"]
+      if (!allowedTypes.includes(imgFile.type)) {
+        toast.error("Invalid image format. Only JPG and PNG are allowed.", {
+          description: "Please upload a supported image format.",
+        })
+        return
+      }
+
       const reader = new FileReader()
       reader.onload = () => {
         const config = TOOL_CONFIGS["image"]
@@ -262,6 +278,9 @@ export function EsignTool() {
           pageNumber,
         })
         toast.success("Image added to document!")
+      }
+      reader.onerror = () => {
+        toast.error("Failed to read image file.")
       }
       reader.readAsDataURL(imgFile)
     }
@@ -316,7 +335,9 @@ export function EsignTool() {
         // Get the actual canvas element and its VISUAL dimensions (not pixel dimensions)
         const canvasElement = document.querySelector('canvas') as HTMLCanvasElement
         if (!canvasElement) {
-          toast.error("Canvas not found")
+          toast.error("Download failed", {
+            description: "Could not find the document canvas. Please refresh and try again.",
+          })
           return
         }
 
@@ -457,7 +478,9 @@ export function EsignTool() {
         const canvas = document.createElement("canvas")
         const ctx = canvas.getContext("2d")
         if (!ctx) {
-          toast.error("Canvas context not available")
+          toast.error("Download failed", {
+            description: "The document processor could not be initialized.",
+          })
           return
         }
 
@@ -527,7 +550,9 @@ export function EsignTool() {
           if (blob) {
             saveAs(blob, `signed_${file.name.replace(/\.[^/.]+$/, "")}.png`)
           } else {
-            toast.error("Failed to generate image")
+            toast.error("Download failed", {
+              description: "Could not generate the signed image file.",
+            })
           }
         }, "image/png")
       }
@@ -535,7 +560,9 @@ export function EsignTool() {
       toast.success("Document signed and downloaded!")
     } catch (error) {
       console.error("Error saving document:", error)
-      toast.error("Error saving document. Please try again.")
+      toast.error("Failed to download document", {
+        description: "An unexpected error occurred while preparing your file. Please try again.",
+      })
     } finally {
       setIsProcessing(false)
     }
