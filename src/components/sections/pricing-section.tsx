@@ -1,4 +1,4 @@
- "use client"
+"use client"
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -38,6 +38,9 @@ export function PricingSection() {
   const handlePlanClick = async (planKey: PlanKey) => {
     if (planKey === "free") {
       if (!user) {
+        toast.info("Sign up to get started", {
+          description: "Create a free account to access the e-signature editor and explore our platform.",
+        })
         router.push("/sign-up")
       } else {
         router.push("/esign")
@@ -46,6 +49,9 @@ export function PricingSection() {
     }
 
     if (!user) {
+      toast.error("Authentication Required", {
+        description: "Please sign up or log in to purchase a plan and unlock premium features.",
+      })
       router.push("/sign-up")
       return
     }
@@ -90,8 +96,8 @@ export function PricingSection() {
           planKey === "basic"
             ? "Basic Plan (one-time)"
             : planKey === "pro"
-            ? "Pro Plan (monthly subscription)"
-            : "Elite Plan (yearly subscription)",
+              ? "Pro Plan (monthly subscription)"
+              : "Elite Plan (yearly subscription)",
         prefill: {
           name: data.customer?.name || user.fullName || undefined,
           email: data.customer?.email || user.primaryEmailAddress?.emailAddress || undefined,
@@ -128,8 +134,8 @@ export function PricingSection() {
                 planKey === "basic"
                   ? "Your Basic plan is now active."
                   : planKey === "pro"
-                  ? "Your Pro subscription is now active."
-                  : "Your Elite subscription is now active.",
+                    ? "Your Pro subscription is now active."
+                    : "Your Elite subscription is now active.",
             })
 
             router.push("/dashboard")
@@ -289,8 +295,8 @@ export function PricingSection() {
                         {Math.round(
                           (1 -
                             parseInt(plan.price.replace(/,/g, "")) /
-                              parseInt((plan.originalPrice || "1").replace(/,/g, ""))) *
-                            100,
+                            parseInt((plan.originalPrice || "1").replace(/,/g, ""))) *
+                          100,
                         )}
                         % OFF
                       </span>
