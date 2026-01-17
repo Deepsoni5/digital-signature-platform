@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
     const subscription = await razorpay.subscriptions.create({
       plan_id: planId,
       customer_notify: 1,
-      total_count: 0,
+      total_count: isPro ? 120 : 10,
       notes: {
         clerk_id: clerkId,
         user_id: userData.id,
