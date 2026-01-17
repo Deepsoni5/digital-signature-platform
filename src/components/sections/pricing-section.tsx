@@ -1,70 +1,72 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { CheckCircle2, Rocket } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useUser } from "@clerk/nextjs"
-import { toast } from "sonner"
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Rocket } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
-type PlanKey = "free" | "basic" | "pro" | "elite"
+type PlanKey = "free" | "basic" | "pro" | "elite";
 
 declare global {
   interface Window {
-    Razorpay?: any
+    Razorpay?: any;
   }
 }
 
 async function loadRazorpayScript() {
-  if (typeof window === "undefined") return false
-  if (window.Razorpay) return true
+  if (typeof window === "undefined") return false;
+  if (window.Razorpay) return true;
 
   return new Promise<boolean>((resolve) => {
-    const script = document.createElement("script")
-    script.src = "https://checkout.razorpay.com/v1/checkout.js"
-    script.onload = () => resolve(true)
-    script.onerror = () => resolve(false)
-    document.body.appendChild(script)
-  })
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 }
 
 export function PricingSection() {
-  const router = useRouter()
-  const { user } = useUser()
-  const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null)
+  const router = useRouter();
+  const { user } = useUser();
+  const [loadingPlan, setLoadingPlan] = useState<PlanKey | null>(null);
 
   const handlePlanClick = async (planKey: PlanKey) => {
     if (planKey === "free") {
       if (!user) {
         toast.info("Sign up to get started", {
-          description: "Create a free account to access the e-signature editor and explore our platform.",
-        })
-        router.push("/sign-up")
+          description:
+            "Create a free account to access the e-signature editor and explore our platform.",
+        });
+        router.push("/sign-up");
       } else {
-        router.push("/esign")
+        router.push("/esign");
       }
-      return
+      return;
     }
 
     if (!user) {
       toast.error("Authentication Required", {
-        description: "Please sign up or log in to purchase a plan and unlock premium features.",
-      })
-      router.push("/sign-up")
-      return
+        description:
+          "Please sign up or log in to purchase a plan and unlock premium features.",
+      });
+      router.push("/sign-up");
+      return;
     }
 
     try {
-      setLoadingPlan(planKey)
+      setLoadingPlan(planKey);
 
-      const scriptLoaded = await loadRazorpayScript()
+      const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded || !window.Razorpay) {
         toast.error("Payment unavailable", {
           description: "Razorpay SDK failed to load. Please try again.",
-        })
-        return
+        });
+        return;
       }
 
       const response = await fetch("/api/razorpay/checkout", {
@@ -75,17 +77,17 @@ export function PricingSection() {
         body: JSON.stringify({
           plan: planKey,
         }),
-      })
+      });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null)
+        const data = await response.json().catch(() => null);
         toast.error("Unable to start payment", {
           description: data?.error || "Please try again later.",
-        })
-        return
+        });
+        return;
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       const options: any = {
         key: data.keyId,
@@ -100,7 +102,11 @@ export function PricingSection() {
               : "Elite Plan (yearly subscription)",
         prefill: {
           name: data.customer?.name || user.fullName || undefined,
-          email: data.customer?.email || user.primaryEmailAddress?.emailAddress || undefined,
+          email:
+            data.customer?.email ||
+            user.primaryEmailAddress?.emailAddress ||
+            undefined,
+          contact: user.primaryPhoneNumber?.phoneNumber || undefined,
         },
         notes: {
           plan: planKey,
@@ -119,14 +125,16 @@ export function PricingSection() {
                 plan: planKey,
                 ...response,
               }),
-            })
+            });
 
             if (!verifyRes.ok) {
-              const verifyData = await verifyRes.json().catch(() => null)
+              const verifyData = await verifyRes.json().catch(() => null);
               toast.error("Payment verification failed", {
-                description: verifyData?.error || "Please contact support if you were charged.",
-              })
-              return
+                description:
+                  verifyData?.error ||
+                  "Please contact support if you were charged.",
+              });
+              return;
             }
 
             toast.success("Plan activated successfully", {
@@ -136,38 +144,41 @@ export function PricingSection() {
                   : planKey === "pro"
                     ? "Your Pro subscription is now active."
                     : "Your Elite subscription is now active.",
-            })
+            });
 
-            router.push("/dashboard")
+            router.push("/dashboard");
           } catch (err) {
             toast.error("Something went wrong", {
               description: "Please contact support if you were charged.",
-            })
+            });
           }
         },
-      }
+      };
 
       if (planKey === "basic" && data.orderId) {
-        options.order_id = data.orderId
+        options.order_id = data.orderId;
       }
 
       if ((planKey === "pro" || planKey === "elite") && data.subscriptionId) {
-        options.subscription_id = data.subscriptionId
+        options.subscription_id = data.subscriptionId;
       }
 
-      const rz = new window.Razorpay(options)
-      rz.open()
+      const rz = new window.Razorpay(options);
+      rz.open();
     } catch (error) {
       toast.error("Payment failed", {
         description: "Please try again in a few moments.",
-      })
+      });
     } finally {
-      setLoadingPlan(null)
+      setLoadingPlan(null);
     }
-  }
+  };
 
   return (
-    <section id="pricing" className="py-24 relative overflow-hidden bg-white dark:bg-slate-950">
+    <section
+      id="pricing"
+      className="py-24 relative overflow-hidden bg-white dark:bg-slate-950"
+    >
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/5 rounded-full blur-[100px] -z-10" />
       <div className="container mx-auto px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
@@ -177,7 +188,9 @@ export function PricingSection() {
             </h2>
             <h3 className="text-4xl font-extrabold tracking-tight sm:text-6xl text-slate-900 dark:text-white">
               Pick the plan that <br />
-              <span className="text-indigo-600 dark:text-indigo-400">works for you.</span>
+              <span className="text-indigo-600 dark:text-indigo-400">
+                works for you.
+              </span>
             </h3>
           </div>
 
@@ -189,7 +202,11 @@ export function PricingSection() {
                 price: "0",
                 period: "",
                 desc: "Explore the interface",
-                features: ["View-only access", "Account Setup", "Email Support"],
+                features: [
+                  "View-only access",
+                  "Account Setup",
+                  "Email Support",
+                ],
                 button: "Get Started",
                 highlight: false,
               },
@@ -199,7 +216,12 @@ export function PricingSection() {
                 price: "99",
                 period: "one-time",
                 desc: "Perfect for single use",
-                features: ["1 Signed Document", "Standard Support", "Basic Editor Tools", "History Access"],
+                features: [
+                  "1 Signed Document",
+                  "Standard Support",
+                  "Basic Editor Tools",
+                  "History Access",
+                ],
                 button: "Buy Now",
                 highlight: false,
               },
@@ -246,7 +268,7 @@ export function PricingSection() {
                   "relative flex flex-col p-8 rounded-[2.5rem] border transition-all duration-500 hover:scale-[1.02]",
                   plan.highlight
                     ? "bg-slate-900 dark:bg-slate-900/40 text-white border-indigo-500 shadow-2xl shadow-indigo-500/20"
-                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white hover:border-indigo-500/50",
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white hover:border-indigo-500/50"
                 )}
               >
                 {plan.highlight && (
@@ -258,7 +280,7 @@ export function PricingSection() {
                   <h4
                     className={cn(
                       "text-xl font-bold mb-2",
-                      plan.highlight ? "text-indigo-400" : "text-indigo-600",
+                      plan.highlight ? "text-indigo-400" : "text-indigo-600"
                     )}
                   >
                     {plan.name}
@@ -266,7 +288,7 @@ export function PricingSection() {
                   <p
                     className={cn(
                       "text-sm",
-                      plan.highlight ? "text-slate-400" : "text-slate-500",
+                      plan.highlight ? "text-slate-400" : "text-slate-500"
                     )}
                   >
                     {plan.desc}
@@ -279,7 +301,7 @@ export function PricingSection() {
                       <span
                         className={cn(
                           "text-base font-medium line-through decoration-rose-500/50 decoration-2",
-                          plan.highlight ? "text-slate-500" : "text-slate-400",
+                          plan.highlight ? "text-slate-500" : "text-slate-400"
                         )}
                       >
                         ₹{plan.originalPrice}
@@ -289,14 +311,16 @@ export function PricingSection() {
                           "px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm",
                           plan.highlight
                             ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20",
+                            : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                         )}
                       >
                         {Math.round(
                           (1 -
                             parseInt(plan.price.replace(/,/g, "")) /
-                            parseInt((plan.originalPrice || "1").replace(/,/g, ""))) *
-                          100,
+                              parseInt(
+                                (plan.originalPrice || "1").replace(/,/g, "")
+                              )) *
+                            100
                         )}
                         % OFF
                       </span>
@@ -310,7 +334,7 @@ export function PricingSection() {
                     <span
                       className={cn(
                         "text-sm font-medium ml-1 opacity-70",
-                        plan.highlight ? "text-slate-400" : "text-slate-500",
+                        plan.highlight ? "text-slate-400" : "text-slate-500"
                       )}
                     >
                       {plan.period}
@@ -324,7 +348,9 @@ export function PricingSection() {
                       <CheckCircle2
                         className={cn(
                           "h-5 w-5 shrink-0 mt-0.5",
-                          plan.highlight ? "text-emerald-400" : "text-indigo-600",
+                          plan.highlight
+                            ? "text-emerald-400"
+                            : "text-indigo-600"
                         )}
                       />
                       <span
@@ -345,7 +371,7 @@ export function PricingSection() {
                     "w-full h-14 rounded-2xl font-bold transition-all",
                     plan.highlight
                       ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl shadow-indigo-500/30"
-                      : "bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-900 dark:text-white",
+                      : "bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-900 dark:text-white"
                   )}
                   disabled={loadingPlan === plan.key}
                   onClick={() => handlePlanClick(plan.key)}
@@ -358,5 +384,5 @@ export function PricingSection() {
         </div>
       </div>
     </section>
-  )
+  );
 }

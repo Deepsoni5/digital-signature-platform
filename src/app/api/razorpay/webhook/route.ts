@@ -1,76 +1,90 @@
-import crypto from "crypto"
-import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import crypto from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
-function verifyWebhookSignature(rawBody: string, signature: string, secret: string) {
+function verifyWebhookSignature(
+  rawBody: string,
+  signature: string,
+  secret: string
+) {
   const expected = crypto
     .createHmac("sha256", secret)
     .update(rawBody)
-    .digest("hex")
-  return expected === signature
+    .digest("hex");
+  return expected === signature;
 }
 
 export const config = {
   api: {
     bodyParser: false,
   },
-}
+};
 
 export async function POST(req: NextRequest) {
   try {
-    const rawBody = await req.text()
-    const signature = req.headers.get("x-razorpay-signature")
-    const secret = process.env.RAZORPAY_WEBHOOK_SECRET
+    const rawBody = await req.text();
+    const signature = req.headers.get("x-razorpay-signature");
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
     if (!signature || !secret) {
-      return NextResponse.json({ error: "Webhook verification not configured" }, { status: 500 })
+      return NextResponse.json(
+        { error: "Webhook verification not configured" },
+        { status: 500 }
+      );
     }
 
     if (!verifyWebhookSignature(rawBody, signature, secret)) {
-      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 })
+      return NextResponse.json(
+        { error: "Invalid webhook signature" },
+        { status: 400 }
+      );
     }
 
-    const event = JSON.parse(rawBody)
-    const eventType: string | undefined = event?.event
+    const event = JSON.parse(rawBody);
+    const eventType: string | undefined = event?.event;
 
     if (!supabase) {
-      return NextResponse.json({ error: "Supabase not configured" }, { status: 500 })
+      return NextResponse.json(
+        { error: "Supabase not configured" },
+        { status: 500 }
+      );
     }
 
     if (eventType === "subscription.charged") {
-      const subscription = event?.payload?.subscription?.entity
-      const notes = subscription?.notes
+      const subscription = event?.payload?.subscription?.entity;
+      const notes = subscription?.notes;
 
       if (notes?.clerk_id) {
-        const clerkId: string = notes.clerk_id
-        const billingType: string | undefined = notes.billing_type
+        const clerkId: string = notes.clerk_id;
+        const billingType: string | undefined = notes.billing_type;
+        const planName: string = notes.plan_name || "Pro";
 
-        const now = new Date()
+        const now = new Date();
         if (billingType === "monthly") {
-          now.setMonth(now.getMonth() + 1)
+          now.setMonth(now.getMonth() + 1);
         } else if (billingType === "yearly") {
-          now.setFullYear(now.getFullYear() + 1)
+          now.setFullYear(now.getFullYear() + 1);
         }
 
         await supabase
           .from("users")
           .update({
             is_premium: true,
+            plan_name: planName,
             document_limit: 99999,
             plan_expires_at: now.toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq("clerk_id", clerkId)
+          .eq("clerk_id", clerkId);
       }
     }
 
-    return NextResponse.json({ received: true })
+    return NextResponse.json({ received: true });
   } catch (error: any) {
-    console.error("Razorpay webhook error:", error)
+    console.error("Razorpay webhook error:", error);
     return NextResponse.json(
       { error: "Failed to process webhook" },
-      { status: 500 },
-    )
+      { status: 500 }
+    );
   }
 }
-
