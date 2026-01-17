@@ -106,6 +106,7 @@ export function PricingSection() {
             data.customer?.email ||
             user.primaryEmailAddress?.emailAddress ||
             undefined,
+          contact: "",
         },
         notes: {
           plan: planKey,
@@ -316,10 +317,10 @@ export function PricingSection() {
                         {Math.round(
                           (1 -
                             parseInt(plan.price.replace(/,/g, "")) /
-                              parseInt(
-                                (plan.originalPrice || "1").replace(/,/g, "")
-                              )) *
-                            100
+                            parseInt(
+                              (plan.originalPrice || "1").replace(/,/g, "")
+                            )) *
+                          100
                         )}
                         % OFF
                       </span>
