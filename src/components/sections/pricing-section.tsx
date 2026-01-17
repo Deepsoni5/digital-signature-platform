@@ -106,7 +106,7 @@ export function PricingSection() {
             data.customer?.email ||
             user.primaryEmailAddress?.emailAddress ||
             undefined,
-          contact: "",
+
         },
         notes: {
           plan: planKey,
