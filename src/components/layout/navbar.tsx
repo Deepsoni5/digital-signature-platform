@@ -150,7 +150,15 @@ export function Navbar() {
                 >
                   <UserButton.MenuItems>
                     <UserButton.Action
-                      label={`${planName} Plan`}
+                      label={
+                        planName === "Elite"
+                          ? "Elite Plan • Renews yearly automatically"
+                          : planName === "Pro"
+                          ? "Pro Plan • Renews monthly automatically"
+                          : planName === "Basic"
+                          ? "Basic Plan • One-time payment"
+                          : `${planName} Plan`
+                      }
                       labelIcon={
                         planName === "Elite" ? <Crown className="h-4 w-4 text-amber-500" /> :
                           planName === "Pro" ? <Gem className="h-4 w-4 text-indigo-500" /> :
@@ -218,7 +226,15 @@ export function Navbar() {
               >
                 <UserButton.MenuItems>
                   <UserButton.Action
-                    label={`${planName} Plan`}
+                    label={
+                      planName === "Elite"
+                        ? "Elite Plan • Renews yearly automatically"
+                        : planName === "Pro"
+                        ? "Pro Plan • Renews monthly automatically"
+                        : planName === "Basic"
+                        ? "Basic Plan • One-time payment"
+                        : `${planName} Plan`
+                    }
                     labelIcon={
                       planName === "Elite" ? <Crown className="h-4 w-4 text-amber-500" /> :
                         planName === "Pro" ? <Gem className="h-4 w-4 text-indigo-500" /> :
@@ -334,7 +350,15 @@ export function Navbar() {
                   >
                     <UserButton.MenuItems>
                       <UserButton.Action
-                        label={`${planName} Plan`}
+                        label={
+                          planName === "Elite"
+                            ? "Elite Plan • Renews yearly automatically"
+                            : planName === "Pro"
+                            ? "Pro Plan • Renews monthly automatically"
+                            : planName === "Basic"
+                            ? "Basic Plan • One-time payment"
+                            : `${planName} Plan`
+                        }
                         labelIcon={
                           planName === "Elite" ? <Crown className="h-4 w-4 text-amber-500" /> :
                             planName === "Pro" ? <Gem className="h-4 w-4 text-indigo-500" /> :
