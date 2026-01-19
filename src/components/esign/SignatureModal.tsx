@@ -45,48 +45,87 @@ export function SignatureModal({ onSave, onCancel, mode = "signature" }: Signatu
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+
+  const isPadInitializedRef = useRef(false)
+
   useEffect(() => {
-    if (canvasRef.current && activeTab === "draw") {
+    // 🔹 Leaving draw tab → reset everything
+    if (activeTab !== "draw") {
+      isPadInitializedRef.current = false
+      signaturePadRef.current = null
+      setHasStrokes(false)
+      return
+    }
+
+    const initSignaturePad = () => {
+      if (!canvasRef.current) return false
+
       const canvas = canvasRef.current
-      signaturePadRef.current = new SignaturePad(canvas, {
-        backgroundColor: "rgba(255, 255, 255, 0)",
-        penColor: selectedColor,
-        minWidth: 1,
-        maxWidth: 3,
-      })
+      const ratio = Math.max(window.devicePixelRatio || 1, 1)
+      const rect = canvas.getBoundingClientRect()
 
-      const resizeCanvas = () => {
-        const ratio = Math.max(window.devicePixelRatio || 1, 1)
-        const rect = canvas.getBoundingClientRect()
+      canvas.width = rect.width * ratio * 2
+      canvas.height = rect.height * ratio * 2
 
-        // Increase resolution by 2x for better quality
-        canvas.width = rect.width * ratio * 2
-        canvas.height = rect.height * ratio * 2
+      const ctx = canvas.getContext("2d")
+      if (ctx) ctx.scale(ratio * 2, ratio * 2)
 
-        const ctx = canvas.getContext("2d")
-        if (ctx) {
-          ctx.scale(ratio * 2, ratio * 2)
-        }
+      // 🔥 Create SignaturePad ONLY when needed
+      if (!isPadInitializedRef.current || !signaturePadRef.current) {
+        signaturePadRef.current = new SignaturePad(canvas, {
+          backgroundColor: "rgba(255,255,255,0)",
+          penColor: selectedColor,
+          minWidth: 1,
+          maxWidth: 3,
+        })
 
-        // Reinitialize signature pad with new dimensions
-        if (signaturePadRef.current) {
-          signaturePadRef.current.clear()
-        }
-        setHasStrokes(false)
+        signaturePadRef.current.addEventListener("endStroke", () => {
+          setHasStrokes(!signaturePadRef.current?.isEmpty())
+        })
+
+        isPadInitializedRef.current = true
+      } else {
+        // 🔥 Only change color (no recreate)
+        signaturePadRef.current.penColor = selectedColor
       }
 
-      resizeCanvas()
-      window.addEventListener("resize", resizeCanvas)
+      return true
+    }
 
-      signaturePadRef.current.onEnd = () => {
+    if (!initSignaturePad()) {
+      const timer = setTimeout(initSignaturePad, 50)
+      return () => clearTimeout(timer)
+    }
+
+    const resizeCanvas = () => {
+      if (!signaturePadRef.current || !canvasRef.current) return
+
+      const canvas = canvasRef.current
+      const ratio = Math.max(window.devicePixelRatio || 1, 1)
+      const data = signaturePadRef.current.toData()
+      const rect = canvas.getBoundingClientRect()
+
+      canvas.width = rect.width * ratio * 2
+      canvas.height = rect.height * ratio * 2
+
+      const ctx = canvas.getContext("2d")
+      if (ctx) ctx.scale(ratio * 2, ratio * 2)
+
+      signaturePadRef.current.clear()
+      if (data.length) {
+        signaturePadRef.current.fromData(data)
         setHasStrokes(true)
       }
+    }
 
-      return () => {
-        window.removeEventListener("resize", resizeCanvas)
-      }
+    window.addEventListener("resize", resizeCanvas)
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas)
     }
   }, [activeTab, selectedColor])
+
+
 
 
   const handleClear = () => {
