@@ -146,7 +146,11 @@ export function PricingSection() {
                     : "Your Elite subscription is now active.",
             });
 
-            router.push("/dashboard");
+            if (planKey === "basic") {
+              router.push("/");
+            } else {
+              router.push("/dashboard");
+            }
           } catch (err) {
             toast.error("Something went wrong", {
               description: "Please contact support if you were charged.",
