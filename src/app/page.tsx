@@ -17,7 +17,11 @@ import {
   Users,
   FolderHeart,
   Bell,
-  Rocket
+  Rocket,
+  Share2,
+  Hash,
+  ArrowUpRight,
+  HandMetal
 } from "lucide-react"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
@@ -188,7 +192,6 @@ export default function Home() {
               </div>
 
               <div className="grid grid-cols-1 gap-12 md:grid-cols-3 relative">
-                {/* Connecting Lines for Desktop */}
                 <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent -translate-y-1/2 -z-10" />
 
                 {[
@@ -228,6 +231,118 @@ export default function Home() {
                 ))}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* New Collaboration / Sharing Section */}
+        <section className="py-24 bg-slate-50 dark:bg-slate-900/40 relative overflow-hidden">
+          <div className="container mx-auto px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+
+                {/* Visual Side */}
+                <div className="flex-1 order-2 lg:order-1 relative">
+                  <div className="relative z-10 p-2 sm:p-4 rounded-[3rem] bg-gradient-to-br from-indigo-500/20 to-violet-500/20 backdrop-blur-xl border border-white/20 shadow-2xl overflow-hidden group">
+                    <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-inner">
+                      {/* Dashboard Mockup Snippet */}
+                      <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-600">
+                            <Share2 size={20} />
+                          </div>
+                          <span className="font-bold text-slate-900 dark:text-white">Share Document</span>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-slate-800 animate-pulse" />
+                      </div>
+
+                      <div className="space-y-6">
+                        <div className="p-6 rounded-3xl bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-100 dark:border-indigo-500/20 relative group-hover:scale-[1.02] transition-transform duration-500">
+                          <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest mb-2">Unique Reference Code</p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white">ESV - 8924</span>
+                            <div className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/30">
+                              COPY
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 p-4 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                          <div className="h-10 w-10 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                            <HandMetal size={18} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">Signer Joined</p>
+                            <p className="text-xs text-slate-500">John Doe is currently signing...</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Decorative Elements */}
+                    <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-64 h-64 bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
+                  </div>
+
+                  {/* Floating Notification */}
+                  <div className="absolute -bottom-6 -right-6 lg:-right-12 z-20 bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 animate-bounce group-hover:scale-110 transition-transform">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-2xl bg-emerald-500 flex items-center justify-center text-white">
+                        <CheckCircle2 size={24} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-900 dark:text-white">Success!</p>
+                        <p className="text-[10px] uppercase font-bold text-slate-400">Document Finalized</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Side */}
+                <div className="flex-1 space-y-8">
+                  <div className="inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-500/20 px-4 py-2 text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                    <Users className="mr-2 h-4 w-4" /> Seamless Collaboration
+                  </div>
+
+                  <h2 className="text-4xl lg:text-6xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+                    Stop emailing heavy <span className="text-indigo-600 dark:text-indigo-400">attachments.</span>
+                  </h2>
+
+                  <p className="text-xl text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl font-medium">
+                    Invite signers instantly with our unique <span className="text-slate-900 dark:text-white font-bold underline decoration-indigo-500/30 underline-offset-4">Reference Code System</span>. Less friction, more signatures, zero re-uploads.
+                  </p>
+
+                  <ul className="space-y-4 pt-4">
+                    {[
+                      { title: "One-Click Join", text: "Signers just enter the code and jump straight into the editor.", icon: <ArrowUpRight /> },
+                      { title: "Cloud-to-Cloud Signing", text: "No more downloading and re-uploading the same file.", icon: <Rocket /> },
+                      { title: "Universal Sync", text: "Both parties get the final version automatically in their dashboard.", icon: <Zap /> }
+                    ].map((item, i) => (
+                      <li key={i} className="flex gap-5 group">
+                        <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                          {item.icon}
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{item.title}</p>
+                          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{item.text}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="pt-6">
+                    <Button asChild size="lg" className="h-14 px-10 rounded-[1.2rem] text-lg font-bold bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-500/20">
+                      <Link href="/esign">Try Collaboration <ArrowRight className="ml-2 h-5 w-5" /></Link>
+                    </Button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          {/* Subtle Side Label */}
+          <div className="hidden 2xl:block absolute top-1/2 -right-12 -rotate-90 origin-center text-8xl font-black text-slate-100 dark:text-white/[0.02] tracking-tighter select-none">
+            COLLABORATE
           </div>
         </section>
 

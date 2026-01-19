@@ -18,8 +18,12 @@ import {
     Clock,
     ArrowUpDown,
     FileCheck,
-    Plus
+    Plus,
+    Share2,
+    Copy,
+    Hash
 } from "lucide-react"
+import { generateShareCodeAction, getDocumentByShareCodeAction } from "@/app/actions/documents"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -51,6 +55,8 @@ interface Document {
     secure_url: string
     status: string
     created_at: string
+    share_code?: string
+    signed_by_name?: string
 }
 
 export default function DashboardPage() {
@@ -62,6 +68,8 @@ export default function DashboardPage() {
     const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc")
     const [statusFilter, setStatusFilter] = useState<string>("all")
     const [typeFilter, setTypeFilter] = useState<string>("all")
+    const [referenceNumber, setReferenceNumber] = useState("")
+    const [isClaiming, setIsClaiming] = useState(false)
 
     const fetchDocuments = useCallback(async () => {
         if (!user) return
@@ -106,6 +114,44 @@ export default function DashboardPage() {
             fetchDocuments()
         }
     }, [isLoaded, user, fetchDocuments])
+
+    const handleShare = async (id: string) => {
+        try {
+            const result = await generateShareCodeAction(id)
+            if (result.success) {
+                const code = result.data.share_code
+                await navigator.clipboard.writeText(code)
+                setDocuments(prev => prev.map(doc => doc.id === id ? { ...doc, share_code: code } : doc))
+                toast.success("Reference Number Generated!", {
+                    description: `Code ${code} copied to clipboard. Share this with others to sign.`,
+                })
+            } else {
+                toast.error(result.error || "Failed to generate share code")
+            }
+        } catch (error) {
+            toast.error("Failed to share document")
+        }
+    }
+
+    const handleClaimDocument = async () => {
+        if (!referenceNumber.trim()) return
+        setIsClaiming(true)
+        try {
+            const result = await getDocumentByShareCodeAction(referenceNumber)
+            if (result.success) {
+                toast.success("Document Found!", {
+                    description: "Opening in editor...",
+                })
+                router.push(`/esign?claim=${referenceNumber.toUpperCase()}`)
+            } else {
+                toast.error(result.error || "Invalid Reference Number")
+            }
+        } catch (error) {
+            toast.error("Error accessing shared document")
+        } finally {
+            setIsClaiming(false)
+        }
+    }
 
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this document? This cannot be undone.")) return
@@ -159,12 +205,33 @@ export default function DashboardPage() {
                                 Manage your signed documents and track your usage.
                             </p>
                         </div>
-                        <Button asChild className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105">
-                            <Link href="/esign">
-                                <Plus size={20} />
-                                Sign New Document
-                            </Link>
-                        </Button>
+                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                            <div className="relative group w-full sm:w-auto">
+                                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400">
+                                    <Hash size={18} />
+                                </div>
+                                <Input
+                                    placeholder="Enter Code :"
+                                    value={referenceNumber}
+                                    onChange={(e) => setReferenceNumber(e.target.value)}
+                                    className="h-12 pl-11 pr-4 w-full sm:w-56 rounded-2xl border-indigo-100 bg-white shadow-sm focus:ring-2 focus:ring-indigo-500/20"
+                                />
+                                <Button
+                                    onClick={handleClaimDocument}
+                                    disabled={!referenceNumber || isClaiming}
+                                    className="absolute right-1 top-1 bottom-1 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-xs font-bold"
+                                >
+                                    {isClaiming ? "..." : "Go"}
+                                </Button>
+                            </div>
+
+                            <Button asChild className="h-12 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold gap-2 shadow-lg shadow-indigo-500/20 transition-all hover:scale-105">
+                                <Link href="/esign">
+                                    <Plus size={20} />
+                                    Sign New Document
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Stats Grid */}
@@ -288,6 +355,7 @@ export default function DashboardPage() {
                                         <TableRow className="bg-slate-50/50 dark:bg-slate-950/50 border-b border-slate-200 dark:border-slate-800">
                                             <TableHead className="w-[400px] py-6 px-8 font-bold text-slate-900 dark:text-white">Document Name</TableHead>
                                             <TableHead className="font-bold text-slate-900 dark:text-white">Status</TableHead>
+                                            <TableHead className="font-bold text-slate-900 dark:text-white">Signed By</TableHead>
                                             <TableHead className="font-bold text-slate-900 dark:text-white">Size</TableHead>
                                             <TableHead className="font-bold text-slate-900 dark:text-white">Date Created</TableHead>
                                             <TableHead className="text-right py-6 px-8 font-bold text-slate-900 dark:text-white">Actions</TableHead>
@@ -321,6 +389,9 @@ export default function DashboardPage() {
                                                         {doc.status}
                                                     </Badge>
                                                 </TableCell>
+                                                <TableCell className="text-slate-500 font-medium italic">
+                                                    {doc.signed_by_name || "—"}
+                                                </TableCell>
                                                 <TableCell className="text-slate-500 font-medium">
                                                     {formatSize(doc.file_size)}
                                                 </TableCell>
@@ -329,6 +400,28 @@ export default function DashboardPage() {
                                                 </TableCell>
                                                 <TableCell className="text-right py-6 px-8">
                                                     <div className="flex items-center justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                if (doc.share_code) {
+                                                                    navigator.clipboard.writeText(doc.share_code)
+                                                                    toast.success("Code copied!", { description: `Reference number ${doc.share_code} is ready to share.` })
+                                                                } else {
+                                                                    handleShare(doc.id)
+                                                                }
+                                                            }}
+                                                            className={cn(
+                                                                "h-10 w-10 border rounded-xl transition-all",
+                                                                doc.share_code
+                                                                    ? "border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100"
+                                                                    : "border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800"
+                                                            )}
+                                                            title={doc.share_code ? "Copy Reference Number" : "Enable Sharing"}
+                                                        >
+                                                            {doc.share_code ? <Copy size={18} /> : <Share2 size={18} />}
+                                                        </Button>
+
                                                         <Button variant="ghost" size="icon" asChild className="h-10 w-10 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all">
                                                             <a href={doc.secure_url} target="_blank" rel="noopener noreferrer">
                                                                 <Download size={18} />
@@ -346,6 +439,19 @@ export default function DashboardPage() {
                                                                     <a href={doc.secure_url} target="_blank" rel="noopener noreferrer">
                                                                         <ExternalLink size={16} /> View Online
                                                                     </a>
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem
+                                                                    className="rounded-xl gap-2 font-medium cursor-pointer"
+                                                                    onClick={() => {
+                                                                        if (doc.share_code) {
+                                                                            navigator.clipboard.writeText(doc.share_code)
+                                                                            toast.success("Code copied!", { description: `Reference number ${doc.share_code} is ready to share.` })
+                                                                        } else {
+                                                                            handleShare(doc.id)
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <Share2 size={16} /> {doc.share_code ? "Copy Ref #" : "Enable Sharing"}
                                                                 </DropdownMenuItem>
                                                                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
                                                                 <DropdownMenuItem

@@ -11,12 +11,12 @@ import { SignatureModal } from "./SignatureModal"
 import { TextModal } from "./TextModal"
 import { DateModal } from "./DateModal"
 import { ElementType, PlacedElement, TOOL_CONFIGS } from "./types"
-import { uploadSignedDocumentAction } from "@/app/actions/documents"
+import { uploadSignedDocumentAction, getDocumentByShareCodeAction } from "@/app/actions/documents"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useUser } from "@clerk/nextjs"
 import { supabase } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   Download,
   Trash2,
@@ -32,7 +32,8 @@ import {
   Undo2,
   Redo2,
   Plus,
-  Menu
+  Menu,
+  Hash
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SidebarTools } from "./SidebarTools"
@@ -44,6 +45,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { Input } from "../ui/input"
 
 interface EsignToolProps {
   initialDocLimit?: number
@@ -52,12 +54,15 @@ interface EsignToolProps {
 
 export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToolProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const claimCode = searchParams.get("claim")
   const [file, setFile] = useState<File | null>(null)
   const [activeTool, setActiveTool] = useState<ElementType | null>(null)
   const [elements, setElements] = useState<PlacedElement[]>([])
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [pageNumber, setPageNumber] = useState(1)
+  const [joinCode, setJoinCode] = useState("")
 
   const [history, setHistory] = useState<PlacedElement[][]>([[]])
   const [historyIndex, setHistoryIndex] = useState(0)
@@ -105,6 +110,48 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
   useEffect(() => {
     fetchPlanAndUsage()
   }, [fetchPlanAndUsage])
+
+  // Handle shared document claim
+  useEffect(() => {
+    const handleClaim = async () => {
+      if (!claimCode || file) return
+
+      // Check document limit before loading
+      if (docLimit <= 0 && !isPlanLoading) {
+        toast.error("Plan Limit Reached", {
+          description: "Please upgrade to Pro to sign shared documents.",
+        })
+        router.replace("/esign")
+        return
+      }
+
+      setIsProcessing(true)
+      try {
+        const result = await getDocumentByShareCodeAction(claimCode)
+        if (result.success && result.data) {
+          const doc = result.data
+          // Fetch the file from Cloudinary and convert to a File object
+          const response = await fetch(doc.secure_url)
+          const blob = await response.blob()
+          const claimedFile = new File([blob], doc.file_name, { type: doc.file_type })
+
+          setFile(claimedFile)
+          toast.success("Shared document loaded!")
+        } else {
+          toast.error(result.error || "Could not load shared document")
+          // Clear the search param if it's invalid
+          router.replace("/esign")
+        }
+      } catch (error) {
+        console.error("Claim error:", error)
+        toast.error("An error occurred while loading the shared document")
+      } finally {
+        setIsProcessing(false)
+      }
+    }
+
+    handleClaim()
+  }, [claimCode, file, router])
 
   const imageInputRef = useRef<HTMLInputElement>(null)
 
@@ -531,6 +578,13 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
         const formData = new FormData()
         formData.append("file", signedFile)
 
+        // Pass claimant info if any
+        if (claimCode) {
+          formData.append("shareCode", claimCode)
+          const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Collaborator"
+          formData.append("signedByName", fullName)
+        }
+
         const syncResult = await uploadSignedDocumentAction(formData)
         if (!syncResult.success) {
           console.error("Cloudinary Sync Error:", syncResult.error)
@@ -625,6 +679,13 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
             const formData = new FormData()
             formData.append("file", signedFile)
 
+            // Pass claimant info if any
+            if (claimCode) {
+              formData.append("shareCode", claimCode)
+              const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Collaborator"
+              formData.append("signedByName", fullName)
+            }
+
             const syncResult = await uploadSignedDocumentAction(formData)
             if (!syncResult.success) {
               console.error("Cloudinary Sync Error:", syncResult.error)
@@ -673,7 +734,21 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
       />
 
       {!file ? (
-        <div className="max-w-3xl mx-auto w-full pt-10">
+        <div className="max-w-3xl mx-auto w-full pt-10 relative">
+          {claimCode && isProcessing && (
+            <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-md rounded-[3.5rem] animate-in fade-in duration-500">
+              <div className="flex flex-col items-center gap-6">
+                <div className="relative">
+                  <div className="h-20 w-20 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+                  <Hash className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600" size={24} />
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">Fetching Shared Document</p>
+                  <p className="text-slate-500 font-medium mt-1">Ref: {claimCode}</p>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="text-center mb-12">
             <div className="inline-flex items-center rounded-full bg-indigo-500/10 px-4 py-1.5 text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-6">
               Step 1: Upload your document
@@ -688,6 +763,48 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
             selectedFile={file}
             onClear={handleClearFile}
           />
+
+          <div className="mt-12 flex flex-col items-center">
+            <div className="flex items-center gap-4 mb-8 w-full">
+              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+              <span className="text-sm font-bold text-slate-400 uppercase tracking-widest px-4">OR</span>
+              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
+            </div>
+
+            <div className="w-full max-w-md">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl shadow-indigo-500/5 group transition-all hover:shadow-indigo-500/10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
+                    <Hash size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">Join a Document</h3>
+                    <p className="text-xs text-slate-500 font-medium">Enter a reference code to sign</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Enter Code : "
+                    value={joinCode}
+                    onChange={(e) => setJoinCode(e.target.value)}
+                    className="h-14 rounded-2xl border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-6 font-bold text-lg tracking-wider focus:ring-indigo-500/20"
+                  />
+                  <Button
+                    onClick={() => {
+                      if (joinCode.trim()) {
+                        router.push(`/esign?claim=${joinCode.toUpperCase().trim()}`)
+                      }
+                    }}
+                    disabled={!joinCode.trim() || isProcessing}
+                    className="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-500/20"
+                  >
+                    Go
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
