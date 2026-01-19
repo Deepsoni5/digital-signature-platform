@@ -2,8 +2,16 @@ import { SignIn } from "@clerk/nextjs"
 import Link from "next/link"
 import { Navbar } from "@/components/layout/navbar"
 import { Footer } from "@/components/layout/footer"
+import { auth } from "@clerk/nextjs/server"
+import { redirect } from "next/navigation"
 
-export default function SignInPage() {
+export default async function SignInPage() {
+    const { userId } = await auth()
+
+    if (userId) {
+        redirect("/esign")
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
             <Navbar />

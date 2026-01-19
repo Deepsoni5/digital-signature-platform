@@ -45,7 +45,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 
-export function EsignTool() {
+interface EsignToolProps {
+  initialDocLimit?: number
+  initialDocCount?: number
+}
+
+export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToolProps) {
   const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [activeTool, setActiveTool] = useState<ElementType | null>(null)
@@ -69,8 +74,8 @@ export function EsignTool() {
 
   // Plan & Usage State
   const { user } = useUser()
-  const [docLimit, setDocLimit] = useState<number>(0)
-  const [docCount, setDocCount] = useState<number>(0)
+  const [docLimit, setDocLimit] = useState<number>(initialDocLimit)
+  const [docCount, setDocCount] = useState<number>(initialDocCount)
   const [isPlanLoading, setIsPlanLoading] = useState(true)
 
   const fetchPlanAndUsage = useCallback(async () => {
@@ -673,7 +678,7 @@ export function EsignTool() {
             <div className="inline-flex items-center rounded-full bg-indigo-500/10 px-4 py-1.5 text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-6">
               Step 1: Upload your document
             </div>
-            <h2 className="text-4xl font-extrabold tracking-tight mb-4">Start Signing Your PDF</h2>
+            <h2 className="text-4xl font-extrabold tracking-tight mb-4">Start Signing Your Document</h2>
             <p className="text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
               Drop your file below to enter the editor. We support PDF, JPG, and PNG formats.
             </p>

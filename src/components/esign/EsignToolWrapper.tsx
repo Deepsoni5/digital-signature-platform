@@ -2,9 +2,14 @@
 
 import dynamic from "next/dynamic"
 
-const EsignTool = dynamic(
+interface EsignToolWrapperProps {
+  initialDocLimit?: number
+  initialDocCount?: number
+}
+
+const EsignTool = dynamic<EsignToolWrapperProps>(
   () => import("./EsignTool").then(mod => mod.EsignTool),
-  { 
+  {
     ssr: false,
     loading: () => (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -17,6 +22,6 @@ const EsignTool = dynamic(
   }
 )
 
-export function EsignToolWrapper() {
-  return <EsignTool />
+export function EsignToolWrapper({ initialDocLimit, initialDocCount }: EsignToolWrapperProps) {
+  return <EsignTool initialDocLimit={initialDocLimit} initialDocCount={initialDocCount} />
 }

@@ -53,10 +53,10 @@ export function FileUploader({ onFileSelect, selectedFile, onClear }: FileUpload
             </div>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onClear} 
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClear}
           className="h-10 w-10 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors"
         >
           <X size={20} />
@@ -70,26 +70,25 @@ export function FileUploader({ onFileSelect, selectedFile, onClear }: FileUpload
       {...getRootProps()}
       className={cn(
         "group relative flex cursor-pointer flex-col items-center justify-center rounded-[3rem] border-4 border-dashed p-16 transition-all duration-300",
-        isDragActive 
-          ? "border-indigo-500 bg-indigo-500/5 scale-[1.02]" 
+        isDragActive
+          ? "border-indigo-500 bg-indigo-500/5 scale-[1.02]"
           : "border-slate-200 dark:border-slate-800 hover:border-indigo-300 hover:bg-slate-50 dark:hover:bg-slate-900/50"
       )}
     >
       <input {...getInputProps()} />
-      
+
       <div className="mb-8 relative">
         <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full scale-150 group-hover:bg-indigo-500/30 transition-colors" />
         <div className="relative flex h-24 w-24 items-center justify-center rounded-[2rem] bg-indigo-600 text-white shadow-2xl shadow-indigo-500/40 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
           <FileUp size={48} strokeWidth={2.5} />
         </div>
       </div>
-      
+
       <h3 className="mb-2 text-3xl font-extrabold tracking-tight">Drop your file here</h3>
       <p className="max-w-[280px] text-center text-slate-500 font-medium leading-relaxed">
-        Upload your PDF or image to start signing instantly. 
-        <span className="text-indigo-600 dark:text-indigo-400 font-bold ml-1">No account needed.</span>
+        Upload your PDF or image to start signing instantly with your secure account.
       </p>
-      
+
       <div className="mt-10 flex items-center gap-6">
         <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
           <FileText size={18} className="text-red-500" />

@@ -3,19 +3,26 @@ import { Footer } from "@/components/layout/footer"
 import { EsignToolWrapper } from "@/components/esign/EsignToolWrapper"
 import { currentUser } from "@clerk/nextjs/server"
 import { syncUserToSupabase } from "@/lib/user-sync"
+import { redirect } from "next/navigation"
 
 export default async function EsignPage() {
   const user = await currentUser()
 
-  // Sync user to Supabase when they access the tool
-  if (user) {
-    await syncUserToSupabase({
-      clerkId: user.id,
-      email: user.emailAddresses[0].emailAddress,
-      fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
-      imageUrl: user.imageUrl,
-    })
+  if (!user) {
+    redirect("/sign-in")
   }
+
+  // Sync user to Supabase when they access the tool
+  const syncResult = await syncUserToSupabase({
+    clerkId: user.id,
+    email: user.emailAddresses[0].emailAddress,
+    fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+    imageUrl: user.imageUrl,
+  })
+
+  // Get initial plan stats from the sync result
+  const initialDocLimit = syncResult.success ? syncResult.data?.document_limit : 0
+  const initialDocCount = syncResult.success ? syncResult.data?.document_count : 0 // Assuming you might have a count field or want to fetch it
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950">
@@ -37,7 +44,7 @@ export default async function EsignPage() {
             </p>
           </div>
 
-          <EsignToolWrapper />
+          <EsignToolWrapper initialDocLimit={initialDocLimit} initialDocCount={initialDocCount} />
         </div>
       </main>
 
