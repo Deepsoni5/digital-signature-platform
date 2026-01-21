@@ -46,6 +46,8 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { format } from "date-fns"
 import { useRouter } from "next/navigation"
+import { AuditTrailSidebar } from "@/components/dashboard/AuditTrailSidebar"
+import { recordDocumentDownloadAction } from "@/app/actions/documents"
 
 interface Document {
     id: string
@@ -70,6 +72,8 @@ export default function DashboardPage() {
     const [typeFilter, setTypeFilter] = useState<string>("all")
     const [referenceNumber, setReferenceNumber] = useState("")
     const [isClaiming, setIsClaiming] = useState(false)
+    const [auditDocId, setAuditDocId] = useState<string | null>(null)
+    const [auditDocName, setAuditDocName] = useState<string>("")
 
     const fetchDocuments = useCallback(async () => {
         if (!user) return
@@ -82,9 +86,10 @@ export default function DashboardPage() {
                 .eq("clerk_id", user.id)
                 .single()
 
-            if (userData?.plan_name === "Free" || userData?.plan_name === "free") {
-                toast.error("Upgrade Required", {
-                    description: "Please upgrade to a paid plan to access the Dashboard.",
+            const allowedPlans = ["Pro", "pro", "Elite", "elite"]
+            if (!userData || !allowedPlans.includes(userData.plan_name)) {
+                toast.error("Upgrade to Pro or Elite", {
+                    description: "The Dashboard and Audit Trail features are exclusively available for Pro and Elite users.",
                 })
                 router.push("/pricing")
                 return
@@ -398,70 +403,113 @@ export default function DashboardPage() {
                                                 <TableCell className="text-slate-500 font-medium whitespace-nowrap">
                                                     {format(new Date(doc.created_at), "MMM d, yyyy")}
                                                 </TableCell>
-                                                <TableCell className="text-right py-6 px-8">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            onClick={() => {
-                                                                if (doc.share_code) {
-                                                                    navigator.clipboard.writeText(doc.share_code)
-                                                                    toast.success("Code copied!", { description: `Reference number ${doc.share_code} is ready to share.` })
-                                                                } else {
-                                                                    handleShare(doc.id)
-                                                                }
-                                                            }}
-                                                            className={cn(
-                                                                "h-10 w-10 border rounded-xl transition-all",
-                                                                doc.share_code
-                                                                    ? "border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100"
-                                                                    : "border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800"
-                                                            )}
-                                                            title={doc.share_code ? "Copy Reference Number" : "Enable Sharing"}
-                                                        >
-                                                            {doc.share_code ? <Copy size={18} /> : <Share2 size={18} />}
-                                                        </Button>
+                                                <TableCell className="text-right py-6 px-4 pr-8">
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        <div className="flex flex-col items-center gap-1.5 min-w-[55px]">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => {
+                                                                    if (doc.share_code) {
+                                                                        navigator.clipboard.writeText(doc.share_code)
+                                                                        toast.success("Code copied!", { description: `Reference number ${doc.share_code} is ready to share.` })
+                                                                    } else {
+                                                                        handleShare(doc.id)
+                                                                    }
+                                                                }}
+                                                                className={cn(
+                                                                    "h-10 w-10 border rounded-xl transition-all",
+                                                                    doc.share_code
+                                                                        ? "border-emerald-200 bg-emerald-50/50 text-emerald-600 hover:bg-emerald-100"
+                                                                        : "border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 transition-colors"
+                                                                )}
+                                                                title={doc.share_code ? "Copy Reference Number" : "Enable Sharing"}
+                                                            >
+                                                                {doc.share_code ? <Copy size={18} /> : <Share2 size={18} />}
+                                                            </Button>
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">
+                                                                {doc.share_code ? "Copy" : "Share"}
+                                                            </span>
+                                                        </div>
 
-                                                        <Button variant="ghost" size="icon" asChild className="h-10 w-10 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all">
-                                                            <a href={doc.secure_url} target="_blank" rel="noopener noreferrer">
-                                                                <Download size={18} />
-                                                            </a>
-                                                        </Button>
+                                                        <div className="flex flex-col items-center gap-1.5 min-w-[55px]">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => {
+                                                                    setAuditDocId(doc.id)
+                                                                    setAuditDocName(doc.file_name)
+                                                                }}
+                                                                className="h-10 w-10 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                                                                title="View Activity History"
+                                                            >
+                                                                <Clock size={18} />
+                                                            </Button>
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">History</span>
+                                                        </div>
 
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-10 w-10 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all">
-                                                                    <MoreVertical size={18} />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-48 p-2 rounded-2xl border-slate-200 dark:border-slate-800">
-                                                                <DropdownMenuItem className="rounded-xl gap-2 font-medium cursor-pointer" asChild>
-                                                                    <a href={doc.secure_url} target="_blank" rel="noopener noreferrer">
-                                                                        <ExternalLink size={16} /> View Online
-                                                                    </a>
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    className="rounded-xl gap-2 font-medium cursor-pointer"
-                                                                    onClick={() => {
-                                                                        if (doc.share_code) {
-                                                                            navigator.clipboard.writeText(doc.share_code)
-                                                                            toast.success("Code copied!", { description: `Reference number ${doc.share_code} is ready to share.` })
-                                                                        } else {
-                                                                            handleShare(doc.id)
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <Share2 size={16} /> {doc.share_code ? "Copy Ref #" : "Enable Sharing"}
-                                                                </DropdownMenuItem>
-                                                                <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-                                                                <DropdownMenuItem
-                                                                    className="rounded-xl gap-2 font-medium text-rose-600 dark:text-rose-400 cursor-pointer focus:bg-rose-50 dark:focus:bg-rose-500/10"
-                                                                    onClick={() => handleDelete(doc.id)}
-                                                                >
-                                                                    <Trash2 size={16} /> Delete Document
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
+                                                        <div className="flex flex-col items-center gap-1.5 min-w-[55px]">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                asChild
+                                                                className="h-10 w-10 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                                                                onClick={() => recordDocumentDownloadAction(doc.id, doc.file_name)}
+                                                            >
+                                                                <a href={doc.secure_url} target="_blank" rel="noopener noreferrer">
+                                                                    <Download size={18} />
+                                                                </a>
+                                                            </Button>
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">Download</span>
+                                                        </div>
+
+                                                        <div className="flex flex-col items-center gap-1.5 min-w-[45px]">
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <Button variant="ghost" size="icon" className="h-10 w-10 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all">
+                                                                        <MoreVertical size={18} />
+                                                                    </Button>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent align="end" className="w-52 p-2 rounded-2xl border-slate-200 dark:border-slate-800 shadow-xl">
+                                                                    <DropdownMenuItem className="rounded-xl gap-2 font-medium cursor-pointer" asChild>
+                                                                        <a href={doc.secure_url} target="_blank" rel="noopener noreferrer">
+                                                                            <ExternalLink size={16} /> View Online
+                                                                        </a>
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="rounded-xl gap-2 font-medium cursor-pointer"
+                                                                        onClick={() => {
+                                                                            setAuditDocId(doc.id)
+                                                                            setAuditDocName(doc.file_name)
+                                                                        }}
+                                                                    >
+                                                                        <Clock size={16} /> Activity History
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        className="rounded-xl gap-2 font-medium cursor-pointer"
+                                                                        onClick={() => {
+                                                                            if (doc.share_code) {
+                                                                                navigator.clipboard.writeText(doc.share_code)
+                                                                                toast.success("Code copied!", { description: `Reference number ${doc.share_code} is ready to share.` })
+                                                                            } else {
+                                                                                handleShare(doc.id)
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        {doc.share_code ? <Copy size={16} /> : <Share2 size={16} />}
+                                                                        {doc.share_code ? "Copy Code" : "Share Document"}
+                                                                    </DropdownMenuItem>
+                                                                    <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+                                                                    <DropdownMenuItem
+                                                                        className="rounded-xl gap-2 font-medium text-rose-600 dark:text-rose-400 cursor-pointer focus:bg-rose-50 dark:focus:bg-rose-500/10"
+                                                                        onClick={() => handleDelete(doc.id)}
+                                                                    >
+                                                                        <Trash2 size={16} /> Delete Permanently
+                                                                    </DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-tighter">More</span>
+                                                        </div>
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
@@ -497,6 +545,12 @@ export default function DashboardPage() {
             </main>
 
             <Footer />
+
+            <AuditTrailSidebar
+                documentId={auditDocId}
+                documentName={auditDocName}
+                onClose={() => setAuditDocId(null)}
+            />
         </div>
     )
 }

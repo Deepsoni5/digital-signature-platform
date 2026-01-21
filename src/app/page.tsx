@@ -32,6 +32,7 @@ import {
 } from '@clerk/nextjs'
 import { PricingSection } from "@/components/sections/pricing-section"
 import { FAQSection } from "@/components/sections/faq-section"
+import { AuditTrailFeature } from "@/components/sections/audit-trail-feature"
 
 export default function Home() {
   return (
@@ -345,6 +346,9 @@ export default function Home() {
             COLLABORATE
           </div>
         </section>
+
+        {/* Audit Trail Section (New) */}
+        <AuditTrailFeature />
 
         {/* Use Cases Section */}
         <section className="py-24">

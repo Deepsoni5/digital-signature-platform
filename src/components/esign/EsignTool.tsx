@@ -63,6 +63,8 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
   const [isProcessing, setIsProcessing] = useState(false)
   const [pageNumber, setPageNumber] = useState(1)
   const [joinCode, setJoinCode] = useState("")
+  const [uploadedAt, setUploadedAt] = useState<string | null>(null)
+  const [signedAt, setSignedAt] = useState<string | null>(null)
 
   const [history, setHistory] = useState<PlacedElement[][]>([[]])
   const [historyIndex, setHistoryIndex] = useState(0)
@@ -136,6 +138,7 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
           const claimedFile = new File([blob], doc.file_name, { type: doc.file_type })
 
           setFile(claimedFile)
+          setUploadedAt(new Date().toISOString()) // Track claim/upload time
           toast.success("Shared document loaded!")
         } else {
           toast.error(result.error || "Could not load shared document")
@@ -200,6 +203,7 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
     }
 
     setFile(selectedFile)
+    setUploadedAt(new Date().toISOString()) // Track manual upload time
     setElements([])
     setHistory([[]])
     setHistoryIndex(0)
@@ -388,6 +392,11 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
   }
 
   const handleAddElement = useCallback((element: Omit<PlacedElement, "id">) => {
+    // Track first signature/content application
+    if (!signedAt) {
+      setSignedAt(new Date().toISOString())
+    }
+
     const newElement: PlacedElement = {
       ...element,
       id: Math.random().toString(36).substr(2, 9),
@@ -585,6 +594,9 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
           formData.append("signedByName", fullName)
         }
 
+        if (uploadedAt) formData.append("uploadedAt", uploadedAt)
+        if (signedAt) formData.append("signedAt", signedAt)
+
         const syncResult = await uploadSignedDocumentAction(formData)
         if (!syncResult.success) {
           console.error("Cloudinary Sync Error:", syncResult.error)
@@ -679,12 +691,14 @@ export function EsignTool({ initialDocLimit = 0, initialDocCount = 0 }: EsignToo
             const formData = new FormData()
             formData.append("file", signedFile)
 
-            // Pass claimant info if any
             if (claimCode) {
               formData.append("shareCode", claimCode)
               const fullName = user ? `${user.firstName || ""} ${user.lastName || ""}`.trim() : "Collaborator"
               formData.append("signedByName", fullName)
             }
+
+            if (uploadedAt) formData.append("uploadedAt", uploadedAt)
+            if (signedAt) formData.append("signedAt", signedAt)
 
             const syncResult = await uploadSignedDocumentAction(formData)
             if (!syncResult.success) {
