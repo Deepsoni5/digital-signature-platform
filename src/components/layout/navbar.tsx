@@ -191,6 +191,13 @@ export function Navbar() {
                       labelIcon={<ArrowUpCircle className="h-4 w-4 text-indigo-600" />}
                       onClick={() => router.push("/pricing")}
                     />
+                    {user?.primaryEmailAddress?.emailAddress === "admin@esignvia.com" && (
+                      <UserButton.Action
+                        label="Admin Panel"
+                        labelIcon={<ShieldCheck className="h-4 w-4 text-rose-600" />}
+                        onClick={() => router.push("/admin")}
+                      />
+                    )}
                   </UserButton.MenuItems>
                 </UserButton>
               </SignedIn>
@@ -271,6 +278,16 @@ export function Navbar() {
                       router.push("/pricing");
                     }}
                   />
+                  {user?.primaryEmailAddress?.emailAddress === "admin@esignvia.com" && (
+                    <UserButton.Action
+                      label="Admin Panel"
+                      labelIcon={<ShieldCheck className="h-4 w-4 text-rose-600" />}
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        router.push("/admin");
+                      }}
+                    />
+                  )}
                 </UserButton.MenuItems>
               </UserButton>
             </div>
