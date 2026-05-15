@@ -140,8 +140,8 @@ export default function ContactPage() {
                     <div>
                       <h3 className="font-bold mb-1">Call Us</h3>
                       <p className="text-sm text-muted-foreground mb-2">Mon-Fri from 9am to 6pm.</p>
-                      <a href="tel:+919008367818" className="text-primary font-medium hover:underline">
-                        +91 90083 67818
+                      <a href="tel:+918431767538" className="text-primary font-medium hover:underline">
+                        +91 84317 67538
                       </a>
                     </div>
                   </CardContent>
